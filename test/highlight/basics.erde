@@ -1,0 +1,28 @@
+local greet = (name = 'world') -> {
+-- <- keyword.modifier
+--    ^ function
+--             ^ variable.parameter
+--                    ^ string
+--                             ^ operator
+  return "hello { name }!"
+  -- <- keyword.return
+  --      ^ string
+  --            ^ punctuation.special
+  --              ^ variable.parameter
+}
+for i = 1, 10 { continue }
+-- <- keyword.repeat
+--              ^ keyword.repeat
+print(MAX, self, nil)
+-- <- function.builtin
+--    ^ constant
+--         ^ variable.builtin
+--               ^ constant.builtin
+match mode {
+-- <- keyword.conditional
+  _ if n > 5 => {}
+--^ character.special
+--  ^ keyword.conditional
+  "a" | "b" => {}
+--    ^ punctuation.delimiter
+}

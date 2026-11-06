@@ -1,0 +1,90 @@
+================================================================================
+Quoted strings
+================================================================================
+
+return 'a\n', "b\""
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (string
+        (string_content)
+        (escape_sequence))
+      (string
+        (string_content)
+        (escape_sequence)))))
+
+================================================================================
+Interpolation
+================================================================================
+
+return "a { b } c \{ d }"
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (string
+        (string_content)
+        (interpolation
+          (identifier))
+        (string_content)
+        (escape_sequence)
+        (string_content)))))
+
+================================================================================
+Nested interpolation
+================================================================================
+
+return "a { "b { c }" }"
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (string
+        (string_content)
+        (interpolation
+          (string
+            (string_content)
+            (interpolation
+              (identifier))))))))
+
+================================================================================
+Block strings
+================================================================================
+
+return [[a]], [==[b ]] { c } ]==]
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (string
+        (string_content))
+      (string
+        (string_content)
+        (interpolation
+          (identifier))
+        (string_content)))))
+
+================================================================================
+Comments inside strings
+================================================================================
+
+return "-- not a comment", "--[[ also not ]]"
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (string
+        (string_content))
+      (string
+        (string_content)))))

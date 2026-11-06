@@ -1,0 +1,128 @@
+================================================================================
+JSX elements (experimental)
+================================================================================
+
+local page = <div class="card {kind}" id={id} disabled>
+  you're -- not a comment {name}!
+  <ui.Button {...props} hx-post="/x" @click={go}/>
+</div>
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (jsx_element
+        (jsx_opening_element
+          (jsx_tag_name)
+          (jsx_attribute
+            (jsx_attribute_name)
+            (string
+              (string_content)
+              (interpolation
+                (identifier))))
+          (jsx_attribute
+            (jsx_attribute_name)
+            (jsx_expression
+              (identifier)))
+          (jsx_attribute
+            (jsx_attribute_name)))
+        (jsx_text)
+        (jsx_expression
+          (identifier))
+        (jsx_text)
+        (jsx_element
+          (jsx_self_closing_element
+            (jsx_tag_name)
+            (jsx_spread_attribute
+              (identifier))
+            (jsx_attribute
+              (jsx_attribute_name)
+              (string
+                (string_content)))
+            (jsx_attribute
+              (jsx_attribute_name)
+              (jsx_expression
+                (identifier)))))
+        (jsx_closing_element
+          (jsx_tag_name))))))
+
+================================================================================
+JSX fragments and nesting (experimental)
+================================================================================
+
+return <>
+  {--[[ note ]]}
+  {}
+  <ul>{map(items, it -> <li>{it}</li>)}</ul>
+</>
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (jsx_element
+        (jsx_opening_element)
+        (jsx_expression
+          (comment
+            (comment_content)))
+        (jsx_expression)
+        (jsx_element
+          (jsx_opening_element
+            (jsx_tag_name))
+          (jsx_expression
+            (function_call
+              (identifier)
+              (arguments
+                (identifier)
+                (arrow_function
+                  (identifier)
+                  (jsx_element
+                    (jsx_opening_element
+                      (jsx_tag_name))
+                    (jsx_expression
+                      (identifier))
+                    (jsx_closing_element
+                      (jsx_tag_name)))))))
+          (jsx_closing_element
+            (jsx_tag_name)))
+        (jsx_closing_element)))))
+
+================================================================================
+JSX `<` is still a comparison after a value
+================================================================================
+
+local a = x < y && f()<2 && t[1]<3 && (x)<4
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (binary_expression
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (identifier)
+              (identifier))
+            (binary_expression
+              (function_call
+                (identifier)
+                (arguments))
+              (number)))
+          (binary_expression
+            (bracket_index_expression
+              (identifier)
+              (number))
+            (number)))
+        (binary_expression
+          (parenthesized_expression
+            (identifier))
+          (number))))))

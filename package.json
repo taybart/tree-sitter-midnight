@@ -1,14 +1,16 @@
 {
-  "name": "@tree-sitter-grammars/tree-sitter-lua",
-  "version": "0.5.0",
-  "description": "Lua grammar for tree-sitter",
+  "name": "tree-sitter-erde",
+  "version": "0.1.0",
+  "description": "Erde grammar for tree-sitter",
   "type": "module",
-  "repository": "https://github.com/tree-sitter-grammars/tree-sitter-lua",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/taybart/tree-sitter-erde.git"
+  },
   "license": "MIT",
   "author": {
-    "name": "Munif Tanjim",
-    "email": "hello@muniftanjim.dev",
-    "url": "https://muniftanjim.dev"
+    "name": "Taylor Bartlett",
+    "email": "taylor.bartlett@journey.ai"
   },
   "main": "bindings/node",
   "types": "bindings/node",
@@ -16,7 +18,7 @@
     "incremental",
     "parsing",
     "tree-sitter",
-    "lua"
+    "erde"
   ],
   "files": [
     "grammar.js",
@@ -34,10 +36,11 @@
   },
   "devDependencies": {
     "prebuildify": "^6.0.1",
-    "tree-sitter-cli": "^0.25.3"
+    "tree-sitter": "^0.25.0",
+    "tree-sitter-cli": "^0.27.1"
   },
   "peerDependencies": {
-    "tree-sitter": "^0.22.4"
+    "tree-sitter": "^0.25.0"
   },
   "peerDependenciesMeta": {
     "tree-sitter": {

@@ -1,0 +1,6 @@
+function a.b() {}
+--         ^ definition.function
+local c = () -> {}
+--    ^ definition.function
+d:e()
+--^ reference.call

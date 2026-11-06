@@ -1,0 +1,132 @@
+================================================================================
+Arrow functions
+================================================================================
+
+local a = x -> x + 1
+local b = (x, y = 1, ...) -> { return x }
+local c = () => self
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (identifier)
+        (binary_expression
+          (identifier)
+          (number)))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (parameters
+          (identifier)
+          (default_parameter
+            (identifier)
+            (number))
+          (vararg_expression))
+        (block
+          (return_statement
+            (expression_list
+              (identifier)))))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (parameters)
+        (identifier)))))
+
+================================================================================
+Arrow function destructured parameters
+================================================================================
+
+local a = [ x ] -> x
+local b = { y: z } -> z
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (array_destructure
+          (destructured_field
+            (identifier)))
+        (identifier))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (map_destructure
+          (destructured_field
+            (identifier)
+            (identifier)))
+        (identifier)))))
+
+================================================================================
+Arrow function block body is never a table
+================================================================================
+
+local a = () -> {}
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (parameters)
+        (block)))))
+
+================================================================================
+Arrow function multiple returns
+================================================================================
+
+local a = () -> (1, 2)
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (parameters)
+        (expression_list
+          (number)
+          (number))))))
+
+================================================================================
+Named varargs
+================================================================================
+
+function f(a, ...rest) { }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (function_declaration
+    (identifier)
+    (parameters
+      (identifier)
+      (vararg_expression)
+      (identifier))
+    (block)))

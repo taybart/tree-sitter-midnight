@@ -1,39 +1,69 @@
 /**
- * @file Lua grammar for tree-sitter
- * @author Munif Tanjim
+ * @file Erde grammar for tree-sitter
+ * @author Munif Tanjim (original Lua grammar)
  * @license MIT
  */
 
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
+// Mirrors the operator precedence of the Erde compiler (erde/constants.erde).
 const PREC = {
-  OR: 1, // or
-  AND: 2, // and
-  COMPARE: 3, // < > <= >= ~= ==
+  ARROW: 0, // -> =>
+  OR: 1, // ||
+  AND: 2, // &&
+  COMPARE: 3, // < > <= >= != ==
   BIT_OR: 4, // |
-  BIT_NOT: 5, // ~
+  BIT_XOR: 5, // ~
   BIT_AND: 6, // &
   BIT_SHIFT: 7, // << >>
   CONCAT: 8, // ..
   PLUS: 9, // + -
   MULTI: 10, // * / // %
-  UNARY: 11, // not # - ~
+  UNARY: 11, // ! # - ~
   POWER: 12, // ^
 };
+
+const ASSIGNMENT_OPERATORS = [
+  '=',
+  '||=',
+  '&&=',
+  '..=',
+  '+=',
+  '-=',
+  '*=',
+  '/=',
+  '//=',
+  '%=',
+  '^=',
+  '|=',
+  '~=',
+  '&=',
+  '<<=',
+  '>>=',
+];
 
 const list_seq = (rule, separator, trailing_separator = false) =>
   trailing_separator
     ? seq(rule, repeat(seq(separator, rule)), optional(separator))
     : seq(rule, repeat(seq(separator, rule)));
 
-const optional_block = ($) => alias(optional($._block), $.block);
-
-// namelist ::= Name {',' Name}
-const name_list = ($) => list_seq(field('name', $.identifier), ',');
+const escape_sequence = (standard_escape_chars) =>
+  token.immediate(
+    seq(
+      '\\',
+      choice(
+        standard_escape_chars,
+        /z\s*/,
+        /[0-9]{1,3}/,
+        /x[0-9a-fA-F]{2}/,
+        /u\{[0-9a-fA-F]+\}/
+      )
+    )
+  );
 
 export default grammar({
-  name: 'lua',
+  name: 'erde',
 
   extras: ($) => [$.comment, /\s/],
 
@@ -45,14 +75,46 @@ export default grammar({
     $._block_string_start,
     $._block_string_content,
     $._block_string_end,
+
+    $._single_quote_string_content,
+    $._double_quote_string_content,
+
+    // A '(' on the same line as the preceding token. Erde only treats '(' as a
+    // function call when it is on the same line as the callee, otherwise it
+    // starts a new statement.
+    $._call_open,
+
+    // A '{' directly following '->' or '=>'. Erde always parses this as a
+    // block (never a table constructor).
+    $._arrow_block_open,
+
+    // `match` at the start of a match statement. `match` is a contextual
+    // keyword, so the scanner only produces this when the next token can't
+    // continue a name (ex. not `match = 1`, `match.x`, or a call `match(x)`).
+    $._match_keyword,
+
+    // Never valid in the grammar. When the scanner sees this as valid, the
+    // parser is in error recovery.
+    $._error_sentinel,
   ],
 
-  supertypes: ($) => [$.statement, $.expression, $.declaration, $.variable],
+  supertypes: ($) => [$.statement, $.expression, $.variable],
 
   word: ($) => $.identifier,
 
+  conflicts: ($) => [
+    // `(a)` vs `(a) -> ...`
+    [$.variable, $._parameter],
+    [$.expression, $._vararg_parameter],
+    // `{ a }` vs `{ a } -> ...`
+    [$.variable, $._map_destructured_field],
+    [$.variable, $.destructured_field],
+    [$.field, $._map_destructured_field],
+    // `a => { ... }` as a match arm vs an arrow function
+    [$.variable, $.arrow_function],
+  ],
+
   rules: {
-    // chunk ::= block
     chunk: ($) =>
       seq(
         optional($.hash_bang_line),
@@ -60,35 +122,18 @@ export default grammar({
         optional($.return_statement)
       ),
 
-    hash_bang_line: (_) => /#.*/,
+    hash_bang_line: (_) => /#!.*/,
 
-    // block ::= {stat} [retstat]
-    _block: ($) =>
-      choice(
-        seq(repeat1($.statement), optional($.return_statement)),
-        seq(repeat($.statement), $.return_statement)
+    block: ($) =>
+      seq('{', repeat($.statement), optional($.return_statement), '}'),
+    _arrow_block: ($) =>
+      seq(
+        alias($._arrow_block_open, '{'),
+        repeat($.statement),
+        optional($.return_statement),
+        '}'
       ),
 
-    /*
-      stat ::=  ';' |
-                varlist '=' explist |
-                functioncall |
-                label |
-                break |
-                goto Name |
-                do block end |
-                while exp do block end |
-                repeat block until exp |
-                if exp then block {elseif exp then block} [else block] end |
-                for Name '=' exp ',' exp [',' exp] do block end |
-                for namelist in explist do block end |
-                function funcname funcbody |
-                local function Name funcbody |
-                global function Name funcbody | 
-                local attnamelist ['=' explist] |
-                global attnamelist ['=' explist] |
-                global [attrib] ‘*’
-    */
     statement: ($) =>
       choice(
         $.empty_statement,
@@ -96,111 +141,114 @@ export default grammar({
         $.function_call,
         $.label_statement,
         $.break_statement,
+        $.continue_statement,
         $.goto_statement,
         $.do_statement,
         $.while_statement,
         $.repeat_statement,
         $.if_statement,
+        $.match_statement,
         $.for_statement,
-        $.declaration,
+        $.variable_declaration,
+        $.function_declaration
       ),
 
-    // retstat ::= return [explist] [';']
+    // return [explist | '(' explist ')'] [';']
     return_statement: ($) =>
       seq(
         'return',
-        optional(alias($._expression_list, $.expression_list)),
+        optional(
+          choice(
+            alias($._expression_list, $.expression_list),
+            alias($._parenthesized_expression_list, $.expression_list)
+          )
+        ),
         optional(';')
       ),
 
-    // ';'
     empty_statement: (_) => ';',
 
-    // varlist '=' explist
+    // varlist ('=' | op'=') explist
     assignment_statement: ($) =>
       seq(
-        alias($._variable_assignment_varlist, $.variable_list),
-        field('operator', '='),
-        alias($._variable_assignment_explist, $.expression_list)
+        alias($._variable_list, $.variable_list),
+        field('operator', choice(...ASSIGNMENT_OPERATORS)),
+        alias($._expression_list, $.expression_list)
       ),
-    // varlist ::= var {',' var}
-    _variable_assignment_varlist: ($) =>
-      list_seq(field('name', $.variable), ','),
-    // explist ::= exp {',' exp}
-    _variable_assignment_explist: ($) =>
-      list_seq(field('value', $.expression), ','),
+    _variable_list: ($) => list_seq(field('name', $.variable), ','),
 
-    // label ::= '::' Name '::'
     label_statement: ($) => seq('::', $.identifier, '::'),
 
-    // break
     break_statement: (_) => 'break',
 
-    // goto Name
+    continue_statement: (_) => 'continue',
+
     goto_statement: ($) => seq('goto', $.identifier),
 
-    // do block end
-    do_statement: ($) => seq('do', field('body', optional_block($)), 'end'),
+    do_statement: ($) => seq('do', field('body', $.block)),
 
-    // while exp do block end
     while_statement: ($) =>
-      seq(
-        'while',
-        field('condition', $.expression),
-        'do',
-        field('body', optional_block($)),
-        'end'
-      ),
+      seq('while', field('condition', $.expression), field('body', $.block)),
 
-    // repeat block until exp
     repeat_statement: ($) =>
       seq(
         'repeat',
-        field('body', optional_block($)),
+        field('body', $.block),
         'until',
         field('condition', $.expression)
       ),
 
-    // if exp then block {elseif exp then block} [else block] end
     if_statement: ($) =>
       seq(
         'if',
         field('condition', $.expression),
-        'then',
-        field('consequence', optional_block($)),
+        field('consequence', $.block),
         repeat(field('alternative', $.elseif_statement)),
-        optional(field('alternative', $.else_statement)),
-        'end'
+        optional(field('alternative', $.else_statement))
       ),
-    // elseif exp then block
     elseif_statement: ($) =>
       seq(
         'elseif',
         field('condition', $.expression),
-        'then',
-        field('consequence', optional_block($))
+        field('consequence', $.block)
       ),
-    // else block
-    else_statement: ($) => seq('else', field('body', optional_block($))),
+    else_statement: ($) => seq('else', field('body', $.block)),
 
-    // for Name '=' exp ',' exp [',' exp] do block end
-    // for namelist in explist do block end
+    // Experimental (go-erde w/ `-X match`), always parsed here since the
+    // compiler is what enforces the experiment.
+    // 'match' exp '{' {pattern {'|' pattern} ['if' exp] '=>' block [',']} '}'
+    match_statement: ($) =>
+      seq(
+        alias($._match_keyword, 'match'),
+        field('value', $.expression),
+        '{',
+        repeat(field('arm', $.match_arm)),
+        '}'
+      ),
+    match_arm: ($) =>
+      seq(
+        list_seq(field('pattern', $._match_pattern), '|'),
+        optional(seq('if', field('guard', $.expression))),
+        '=>',
+        field('body', choice($.block, alias($._arrow_block, $.block))),
+        optional(',')
+      ),
+    // Patterns stop before `|` (and lower precedence operators), same as the
+    // compiler, so `|` separates patterns.
+    _match_pattern: ($) => prec.right(PREC.BIT_XOR, $.expression),
+
     for_statement: ($) =>
       seq(
         'for',
         field('clause', choice($.for_generic_clause, $.for_numeric_clause)),
-        'do',
-        field('body', optional_block($)),
-        'end'
+        field('body', $.block)
       ),
-    // namelist in explist
     for_generic_clause: ($) =>
       seq(
-        alias($._name_list, $.variable_list),
+        alias($._declaration_list, $.variable_list),
         'in',
         alias($._expression_list, $.expression_list)
       ),
-    // Name '=' exp ',' exp [',' exp]
     for_numeric_clause: ($) =>
       seq(
         field('name', $.identifier),
@@ -210,45 +258,58 @@ export default grammar({
         field('end', $.expression),
         optional(seq(',', field('step', $.expression)))
       ),
-    // namelist ::= Name {',' Name}
-    _name_list: ($) => name_list($),
 
-    // function funcname funcbody
-    // local function Name funcbody
-    // global function Name funcbody
-    // local attnamelist [‘=’ explist]
-    // global attnamelist [‘=’ explist]
-    // global [attrib] ‘*’
-    declaration: ($) =>
-      choice(
-        $.function_declaration,
-        field(
-          'local_declaration',
-          alias($._local_function_declaration, $.function_declaration)
-        ),
-        field('local_declaration', $.variable_declaration),
-        field(
-          'global_declaration',
-          alias($._global_function_declaration, $.function_declaration)
-        ),
-        field(
-          'global_declaration',
-          alias($._global_variable_declaration, $.variable_declaration)
-        ),
-        field(
-          'global_declaration',
-          alias($._global_implicit_variable_declaration, $.implicit_variable_declaration)
+    // ('local' | 'global' | 'module') declist ['=' explist]
+    variable_declaration: ($) =>
+      seq(
+        field('scope', $.scope),
+        alias($._declaration_list, $.variable_list),
+        optional(
+          seq(
+            field('operator', '='),
+            alias($._expression_list, $.expression_list)
+          )
         )
       ),
-    // function funcname funcbody
+    _declaration_list: ($) => list_seq(field('name', $._declaration), ','),
+    _declaration: ($) =>
+      choice($.identifier, $.array_destructure, $.map_destructure),
+
+    scope: (_) => choice('local', 'global', 'module'),
+
+    // '[' name ['=' exp] {',' name ['=' exp]} [','] ']'
+    array_destructure: ($) =>
+      seq('[', list_seq($.destructured_field, ',', true), ']'),
+    // '{' key [':' name] ['=' exp] {',' ...} [','] '}'
+    map_destructure: ($) =>
+      seq(
+        '{',
+        list_seq(alias($._map_destructured_field, $.destructured_field), ',', true),
+        '}'
+      ),
+    destructured_field: ($) =>
+      seq(
+        field('name', $.identifier),
+        optional(seq('=', field('default', $.expression)))
+      ),
+    _map_destructured_field: ($) =>
+      seq(
+        field('key', $.identifier),
+        optional(seq(':', field('name', $.identifier))),
+        optional(seq('=', field('default', $.expression)))
+      ),
+
+    // ['local' | 'global' | 'module'] 'function' funcname params block
     function_declaration: ($) =>
-      seq('function', field('name', $._function_name), $._function_body),
-    // local function Name funcbody
-    _local_function_declaration: ($) =>
-      seq('local', 'function', field('name', $.identifier), $._function_body),
-    // global function Name funcbody
-    _global_function_declaration: ($) =>
-      seq('global', 'function', field('name', $.identifier), $._function_body),
+      choice(
+        seq('function', field('name', $._function_name), $._function_body),
+        seq(
+          field('scope', $.scope),
+          'function',
+          field('name', $.identifier),
+          $._function_body
+        )
+      ),
     // funcname ::= Name {'.' Name} [':' Name]
     _function_name: ($) =>
       choice(
@@ -275,62 +336,52 @@ export default grammar({
         ':',
         field('method', $.identifier)
       ),
+    _function_body: ($) =>
+      seq(field('parameters', $.parameters), field('body', $.block)),
 
-    // local attnamelist [‘=’ explist]
-    variable_declaration: ($) =>
+    // '(' [param {',' param}] [',' '...' [Name]] [','] ')'
+    parameters: ($) =>
       seq(
-        'local',
-        choice(
-          alias($._att_name_list, $.variable_list),
-          alias($._variable_assignment, $.assignment_statement)
-        )
-      ),
-    // global attnamelist [‘=’ explist]
-    _global_variable_declaration: ($) =>
-      seq(
-        'global',
-        choice(
-          alias($._att_name_list, $.variable_list),
-          alias($._variable_assignment, $.assignment_statement),
-        )
-      ),
-    // attnamelist ‘=’ explist
-    _variable_assignment: ($) =>
-      seq(
-        alias($._att_name_list, $.variable_list),
-        field('operator', '='),
-        alias($._variable_assignment_explist, $.expression_list)
-      ),
-
-    // attnamelist ::= [attrib] Name [attrib] {‘,’ Name [attrib]}
-    _att_name_list: ($) =>
-      seq(
-        optional(field('attribute', alias($._attrib, $.attribute))),
-        list_seq(
-          seq(
-            field('name', $.identifier),
-            optional(field('attribute', alias($._attrib, $.attribute)))
-          ),
-          ','
+        '(',
+        optional(
+          choice(
+            seq(
+              list_seq($._parameter, ','),
+              optional(seq(',', $._vararg_parameter)),
+              optional(',')
+            ),
+            seq($._vararg_parameter, optional(','))
+          )
         ),
+        ')'
       ),
-    // global [attrib] ‘*’
-    _global_implicit_variable_declaration: ($) =>
+    _parameter: ($) =>
+      choice(
+        $.identifier,
+        $.array_destructure,
+        $.map_destructure,
+        $.default_parameter
+      ),
+    default_parameter: ($) =>
       seq(
-        'global',
-        optional(field('attribute', alias($._attrib, $.attribute))),
-        '*'
+        field('name', choice($.identifier, $.array_destructure, $.map_destructure)),
+        '=',
+        field('value', $.expression)
       ),
-    // attrib ::= ‘<’ Name ‘>’
-    _attrib: ($) => seq('<', $.identifier, '>'),
+    _vararg_parameter: ($) =>
+      seq($.vararg_expression, optional(field('name', $.identifier))),
 
-    // explist ::= exp {',' exp}
-    _expression_list: ($) => list_seq($.expression, ','),
+    _expression_list: ($) => list_seq(field('value', $.expression), ','),
+    // '(' exp ',' exp {',' exp} [','] ')'
+    _parenthesized_expression_list: ($) =>
+      seq(
+        '(',
+        field('value', $.expression),
+        repeat1(seq(',', field('value', $.expression))),
+        optional(','),
+        ')'
+      ),
 
-    /*
-      exp ::=  nil | false | true | Numeral | LiteralString | '...' | functiondef |
-               prefixexp | tableconstructor | exp binop exp | unop exp
-     */
     expression: ($) =>
       choice(
         $.nil,
@@ -339,155 +390,112 @@ export default grammar({
         $.number,
         $.string,
         $.vararg_expression,
-        $.function_definition,
+        $.arrow_function,
         $.variable,
         $.function_call,
         $.parenthesized_expression,
         $.table_constructor,
         $.binary_expression,
-        $.unary_expression
+        $.unary_expression,
+        $.jsx_element
       ),
 
-    // nil
     nil: (_) => 'nil',
-
-    // false
     false: (_) => 'false',
-
-    // true
     true: (_) => 'true',
 
-    // Numeral
     number: (_) => {
-      function number_literal(digits, exponent_marker, exponent_digits) {
-        return choice(
-          seq(digits, /U?LL/i),
-          seq(
-            choice(
-              seq(optional(digits), optional('.'), digits),
-              seq(digits, optional('.'), optional(digits))
-            ),
-            optional(
-              seq(
-                choice(
-                  exponent_marker.toLowerCase(),
-                  exponent_marker.toUpperCase()
-                ),
-                seq(optional(choice('-', '+')), exponent_digits)
-              )
-            ),
-            optional(choice('i', 'I'))
-          )
-        );
-      }
-
-      const decimal_digits = /[0-9]+/;
-      const decimal_literal = number_literal(
-        decimal_digits,
-        'e',
-        decimal_digits
-      );
-
-      const hex_digits = /[a-fA-F0-9]+/;
-      const hex_literal = seq(
-        choice('0x', '0X'),
-        number_literal(hex_digits, 'p', decimal_digits)
-      );
-
-      const bin_digits = /[01]+/;
-      const bin_literal = seq(
-        choice('0b', '0B'),
-        choice(
-          seq(bin_digits, /U?LL/i),
-          seq(bin_digits, optional(choice('i', 'I')))
-        )
-      );
-
-      return token(choice(decimal_literal, hex_literal, bin_literal));
+      const decimal = /([0-9]+(\.[0-9]+)?|\.[0-9]+)([eE][+-]?[0-9]+)?/;
+      const hex =
+        /0[xX]([0-9a-fA-F]+(\.[0-9a-fA-F]+)?|\.[0-9a-fA-F]+)([pP][+-]?[0-9]+)?/;
+      const binary = /0[bB][01]+/;
+      return token(choice(decimal, hex, binary));
     },
 
-    // LiteralString
-    string: ($) => choice($._quote_string, $._block_string),
-
-    _quote_string: ($) =>
+    string: ($) =>
       choice(
         seq(
-          field('start', alias('"', '"')),
-          field(
-            'content',
-            optional(alias($._doublequote_string_content, $.string_content))
+          field('start', "'"),
+          repeat(
+            choice(
+              alias($._single_quote_string_content, $.string_content),
+              alias($._single_quote_escape_sequence, $.escape_sequence)
+            )
           ),
-          field('end', alias('"', '"'))
+          field('end', "'")
         ),
         seq(
-          field('start', alias("'", "'")),
-          field(
-            'content',
-            optional(alias($._singlequote_string_content, $.string_content))
+          field('start', '"'),
+          repeat(
+            choice(
+              alias($._double_quote_string_content, $.string_content),
+              $.escape_sequence,
+              $.interpolation
+            )
           ),
-          field('end', alias("'", "'"))
+          field('end', '"')
+        ),
+        seq(
+          field('start', alias($._block_string_start, '[[')),
+          repeat(
+            choice(
+              alias($._block_string_content, $.string_content),
+              $.interpolation
+            )
+          ),
+          field('end', alias($._block_string_end, ']]'))
         )
       ),
 
-    _doublequote_string_content: ($) =>
-      repeat1(choice(token.immediate(prec(1, /[^"\\]+/)), $.escape_sequence)),
+    // '{' exp '}'
+    interpolation: ($) => seq('{', $.expression, '}'),
 
-    _singlequote_string_content: ($) =>
-      repeat1(choice(token.immediate(prec(1, /[^'\\]+/)), $.escape_sequence)),
+    // Double quote strings additionally allow escaping interpolation braces.
+    escape_sequence: (_) => escape_sequence(/[\nabfnrtv\\'"{}]/),
+    _single_quote_escape_sequence: (_) => escape_sequence(/[\nabfnrtv\\'"]/),
 
-    _block_string: ($) =>
-      seq(
-        field('start', alias($._block_string_start, '[[')),
-        field('content', alias($._block_string_content, $.string_content)),
-        field('end', alias($._block_string_end, ']]'))
-      ),
+    vararg_expression: (_) => '...',
 
-    escape_sequence: () =>
-      token.immediate(
+    // (params | Name | destructure) ('->' | '=>') (block | '(' explist ')' | exp)
+    arrow_function: ($) =>
+      prec.right(
+        PREC.ARROW,
         seq(
-          '\\',
-          choice(
-            /[\nabfnrtv\\'"]/,
-            /z\s*/,
-            /[0-9]{1,3}/,
-            /x[0-9a-fA-F]{2}/,
-            /u\{[0-9a-fA-F]+\}/
+          field(
+            'parameters',
+            choice(
+              $.parameters,
+              $.identifier,
+              $.array_destructure,
+              $.map_destructure
+            )
+          ),
+          field('operator', choice('->', '=>')),
+          field(
+            'body',
+            choice(
+              alias($._arrow_block, $.block),
+              alias($._parenthesized_expression_list, $.expression_list),
+              $.expression
+            )
           )
         )
       ),
 
-    // '...'
-    vararg_expression: (_) => '...',
-
-    // functiondef ::= function funcbody
-    function_definition: ($) => seq('function', $._function_body),
-    // funcbody ::= '(' [parlist] ')' block end
-    _function_body: ($) =>
-      seq(
-        field('parameters', $.parameters),
-        field('body', optional_block($)),
-        'end'
-      ),
-    // '(' [parlist] ')'
-    parameters: ($) => seq('(', optional($._parameter_list), ')'),
-    // parlist ::= namelist [‘,’ varargparam] | varargparam
-    _parameter_list: ($) =>
-      choice(
-        seq(name_list($), optional(seq(',', $._vararg_parameter))),
-        $._vararg_parameter
-      ),
-    // varargparam ::= ‘...’ [Name]
-    _vararg_parameter: ($) =>
-      seq($.vararg_expression, optional(field('name', $.identifier))),
-
-    // prefixexp ::= var | functioncall | '(' exp ')'
+    // Strings may also start an index chain, ex) `'abc':upper()`
     _prefix_expression: ($) =>
-      prec(1, choice($.variable, $.function_call, $.parenthesized_expression)),
+      prec(
+        1,
+        choice(
+          $.variable,
+          $.function_call,
+          $.parenthesized_expression,
+          $.string
+        )
+      ),
 
-    // var ::=  Name | prefixexp [ exp ] | prefixexp . Name
     variable: ($) =>
-      choice($._contextual_keyword, $.identifier, $.bracket_index_expression, $.dot_index_expression),
-    // prefixexp [ exp ]
+      choice($.identifier, $.bracket_index_expression, $.dot_index_expression),
     bracket_index_expression: ($) =>
       seq(
         field('table', $._prefix_expression),
@@ -495,7 +503,6 @@ export default grammar({
         field('field', $.expression),
         ']'
       ),
-    // prefixexp . Name
     dot_index_expression: ($) =>
       seq(
         field('table', $._prefix_expression),
@@ -503,37 +510,42 @@ export default grammar({
         field('field', $.identifier)
       ),
 
-    // functioncall ::=  prefixexp args | prefixexp ':' Name args
     function_call: ($) =>
-      seq(
-        field('name', choice($._prefix_expression, $.method_index_expression)),
-        field('arguments', $.arguments)
+      choice(
+        seq(
+          field('name', $._prefix_expression),
+          field('arguments', $.arguments)
+        ),
+        // Unlike plain calls, method call arguments may start on a new line.
+        seq(
+          field('name', $.method_index_expression),
+          field('arguments', alias($._method_arguments, $.arguments))
+        )
       ),
-    // prefixexp ':' Name
     method_index_expression: ($) =>
       seq(
         field('table', $._prefix_expression),
         ':',
         field('method', $.identifier)
       ),
-    // args ::=  '(' [explist] ')' | tableconstructor | LiteralString
     arguments: ($) =>
-      choice(
-        seq('(', optional(list_seq($.expression, ',')), ')'),
-        $.table_constructor,
-        $.string
+      seq(
+        alias($._call_open, '('),
+        optional(list_seq($.expression, ',', true)),
+        ')'
+      ),
+    _method_arguments: ($) =>
+      seq(
+        choice(alias($._call_open, '('), '('),
+        optional(list_seq($.expression, ',', true)),
+        ')'
       ),
 
-    // '(' exp ')'
     parenthesized_expression: ($) => seq('(', $.expression, ')'),
 
-    // tableconstructor ::= '{' [fieldlist] '}'
-    table_constructor: ($) => seq('{', optional($._field_list), '}'),
-    // fieldlist ::= field {fieldsep field} [fieldsep]
-    _field_list: ($) => list_seq($.field, $._field_sep, true),
-    // fieldsep ::= ',' | ';'
-    _field_sep: (_) => choice(',', ';'),
-    // field ::= '[' exp ']' '=' exp | Name '=' exp | exp
+    // '{' [field {',' field} [',']] '}'
+    table_constructor: ($) =>
+      seq('{', optional(list_seq($.field, ',', true)), '}'),
     field: ($) =>
       choice(
         seq(
@@ -543,27 +555,31 @@ export default grammar({
           field('operator', '='),
           field('value', $.expression)
         ),
-        seq(field('name', choice($._contextual_keyword, $.identifier)), '=', field('value', $.expression)),
+        seq(
+          field('name', $.identifier),
+          field('operator', '='),
+          field('value', $.expression)
+        ),
         field('value', $.expression)
       ),
 
-    // exp binop exp
     binary_expression: ($) =>
       choice(
         ...[
-          ['or', PREC.OR],
-          ['and', PREC.AND],
+          ['||', PREC.OR],
+          ['&&', PREC.AND],
           ['<', PREC.COMPARE],
           ['<=', PREC.COMPARE],
           ['==', PREC.COMPARE],
-          ['~=', PREC.COMPARE],
+          ['!=', PREC.COMPARE],
           ['>=', PREC.COMPARE],
           ['>', PREC.COMPARE],
           ['|', PREC.BIT_OR],
-          ['~', PREC.BIT_NOT],
+          ['~', PREC.BIT_XOR],
           ['&', PREC.BIT_AND],
           ['<<', PREC.BIT_SHIFT],
           ['>>', PREC.BIT_SHIFT],
+          ['..', PREC.CONCAT],
           ['+', PREC.PLUS],
           ['-', PREC.PLUS],
           ['*', PREC.MULTI],
@@ -580,41 +596,85 @@ export default grammar({
             )
           )
         ),
-        ...[
-          ['..', PREC.CONCAT],
-          ['^', PREC.POWER],
-        ].map(([operator, precedence]) =>
-          prec.right(
-            precedence,
-            seq(
-              field('left', $.expression),
-              field('operator', operator),
-              field('right', $.expression)
-            )
+        prec.right(
+          PREC.POWER,
+          seq(
+            field('left', $.expression),
+            field('operator', '^'),
+            field('right', $.expression)
           )
         )
       ),
 
-    // unop exp
     unary_expression: ($) =>
       prec.left(
         PREC.UNARY,
         seq(
-          field('operator', choice('not', '#', '-', '~')),
-          field('operand', $.expression),
+          field('operator', choice('!', '#', '-', '~')),
+          field('operand', $.expression)
         )
       ),
 
-    // Name
-    identifier: (_) => {
-      const identifier_start =
-        /[^\p{Control}\s+\-*/%^#&~|<>=(){}\[\];:,.\\'"\d]/;
-      const identifier_continue =
-        /[^\p{Control}\s+\-*/%^#&~|<>=(){}\[\];:,.\\'"]*/;
-      return token(seq(identifier_start, identifier_continue));
-    },
+    // Experimental (go-erde w/ `-X jsx`), always parsed here since the
+    // compiler is what enforces the experiment. An element can only start
+    // where an expression can, so `a < b` is still a comparison.
+    //
+    //   <div class="x" id={id}>text {expr}</div>
+    //   <Card {...props} title="t"/>
+    //   <>fragment</>
+    jsx_element: ($) =>
+      choice(
+        seq(
+          field('open_tag', $.jsx_opening_element),
+          repeat($._jsx_child),
+          field('close_tag', $.jsx_closing_element)
+        ),
+        $.jsx_self_closing_element
+      ),
+    jsx_opening_element: ($) =>
+      seq(
+        '<',
+        optional(
+          seq(
+            field('name', $.jsx_tag_name),
+            repeat(field('attribute', $._jsx_attribute))
+          )
+        ),
+        '>'
+      ),
+    jsx_closing_element: ($) =>
+      seq('</', optional(field('name', $.jsx_tag_name)), '>'),
+    jsx_self_closing_element: ($) =>
+      seq(
+        '<',
+        field('name', $.jsx_tag_name),
+        repeat(field('attribute', $._jsx_attribute)),
+        '/>'
+      ),
 
-    // comment
+    // Lowercase (or w/ `-` / `:`) names are HTML elements, others are
+    // (dotted) names of components, ex) `ui.Button`.
+    jsx_tag_name: (_) => /[a-zA-Z_][a-zA-Z0-9_\-.:]*/,
+
+    _jsx_attribute: ($) => choice($.jsx_attribute, $.jsx_spread_attribute),
+    // ex) `hx-post="/x"`, `@click={f}`, `x-on:click.prevent`, `disabled`
+    jsx_attribute: ($) =>
+      seq(
+        field('name', $.jsx_attribute_name),
+        optional(
+          seq('=', field('value', choice($.string, $.jsx_expression)))
+        )
+      ),
+    jsx_attribute_name: (_) => /[a-zA-Z_@:][a-zA-Z0-9_\-.:]*/,
+    jsx_spread_attribute: ($) => seq('{', '...', $.expression, '}'),
+
+    _jsx_child: ($) => choice($.jsx_text, $.jsx_element, $.jsx_expression),
+    jsx_text: (_) => /[^{}<\s]([^{}<]*[^{}<\s])?/,
+    // `{}` (or w/ only a comment) is allowed, same as the compiler.
+    jsx_expression: ($) => seq('{', optional($.expression), '}'),
+
+    identifier: (_) => /[a-zA-Z_][a-zA-Z0-9_]*/,
+
     comment: ($) =>
       choice(
         seq(
@@ -623,12 +683,11 @@ export default grammar({
         ),
         seq(
           field('start', alias($._block_comment_start, '[[')),
-          field('content', alias($._block_comment_content, $.comment_content)),
+          optional(
+            field('content', alias($._block_comment_content, $.comment_content))
+          ),
           field('end', alias($._block_comment_end, ']]'))
         )
       ),
-
-    // only `global` for now
-    _contextual_keyword: (_) => 'global',
   },
 });

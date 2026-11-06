@@ -1,19 +1,23 @@
 ; Scopes
 [
   (chunk)
-  (do_statement)
-  (while_statement)
-  (repeat_statement)
-  (if_statement)
+  (block)
   (for_statement)
   (function_declaration)
-  (function_definition)
+  (arrow_function)
 ] @local.scope
 
 ; Definitions
-(assignment_statement
+(variable_declaration
   (variable_list
     (identifier) @local.definition))
+
+(destructured_field
+  name: (identifier) @local.definition)
+
+(destructured_field
+  key: (identifier) @local.definition
+  !name)
 
 (function_declaration
   name: (identifier) @local.definition)
@@ -27,6 +31,12 @@
 
 (parameters
   (identifier) @local.definition)
+
+(default_parameter
+  name: (identifier) @local.definition)
+
+(arrow_function
+  parameters: (identifier) @local.definition)
 
 ; References
 (identifier) @local.reference

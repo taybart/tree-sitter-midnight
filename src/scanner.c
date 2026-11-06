@@ -1,6 +1,7 @@
-#include <stdio.h>
 #include "tree_sitter/alloc.h"
 #include "tree_sitter/parser.h"
+
+#include <string.h>
 #include <wctype.h>
 
 enum TokenType {
@@ -11,7 +12,28 @@ enum TokenType {
   BLOCK_STRING_START,
   BLOCK_STRING_CONTENT,
   BLOCK_STRING_END,
+
+  SINGLE_QUOTE_STRING_CONTENT,
+  DOUBLE_QUOTE_STRING_CONTENT,
+
+  CALL_OPEN,
+
+  ARROW_BLOCK_OPEN,
+
+  MATCH_KEYWORD,
+
+  ERROR_SENTINEL,
 };
+
+// Block strings may nest through interpolation, ex) `[[ { [=[ ]=] } ]]`, so we
+// keep a stack of their levels (number of '=').
+#define MAX_BLOCK_STRING_DEPTH 64
+
+typedef struct {
+  uint8_t block_comment_level;
+  uint8_t block_string_depth;
+  uint8_t block_string_levels[MAX_BLOCK_STRING_DEPTH];
+} Scanner;
 
 static inline void consume(TSLexer *lexer) { lexer->advance(lexer, false); }
 
@@ -35,53 +57,42 @@ static inline uint8_t consume_and_count_char(char c, TSLexer *lexer) {
   return count;
 }
 
-static inline void skip_whitespaces(TSLexer *lexer) {
-  while (iswspace(lexer->lookahead)) {
-    skip(lexer);
+void *tree_sitter_erde_external_scanner_create() {
+  return ts_calloc(1, sizeof(Scanner));
+}
+
+void tree_sitter_erde_external_scanner_destroy(void *payload) {
+  ts_free(payload);
+}
+
+unsigned tree_sitter_erde_external_scanner_serialize(void *payload, char *buffer) {
+  Scanner *scanner = (Scanner *)payload;
+  buffer[0] = (char)scanner->block_comment_level;
+  buffer[1] = (char)scanner->block_string_depth;
+  memcpy(&buffer[2], scanner->block_string_levels, scanner->block_string_depth);
+  return 2 + scanner->block_string_depth;
+}
+
+void tree_sitter_erde_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
+  Scanner *scanner = (Scanner *)payload;
+  memset(scanner, 0, sizeof(Scanner));
+
+  if (length < 2) {
+    return;
   }
+
+  scanner->block_comment_level = (uint8_t)buffer[0];
+  scanner->block_string_depth = (uint8_t)buffer[1];
+  memcpy(scanner->block_string_levels, &buffer[2], scanner->block_string_depth);
 }
 
-typedef struct {
-  char ending_char;
-  uint8_t level_count;
-} Scanner;
-
-static inline void reset_state(Scanner *scanner) {
-  scanner->ending_char = 0;
-  scanner->level_count = 0;
-}
-
-void *tree_sitter_lua_external_scanner_create() {
-  Scanner *scanner = ts_calloc(1, sizeof(Scanner));
-  return scanner;
-}
-
-void tree_sitter_lua_external_scanner_destroy(void *payload) {
-  Scanner *scanner = (Scanner *)payload;
-  ts_free(scanner);
-}
-
-unsigned tree_sitter_lua_external_scanner_serialize(void *payload, char *buffer) {
-  Scanner *scanner = (Scanner *)payload;
-  buffer[0] = scanner->ending_char;
-  buffer[1] = (char)scanner->level_count;
-  return 2;
-}
-
-void tree_sitter_lua_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
-  Scanner *scanner = (Scanner *)payload;
-  if (length == 0) return;
-  scanner->ending_char = buffer[0];
-  if (length == 1) return;
-  scanner->level_count = buffer[1];
-}
-
-static bool scan_block_start(Scanner *scanner, TSLexer *lexer) {
+// '[' {'='} '['
+static bool scan_block_start(TSLexer *lexer, uint8_t *level) {
   if (consume_char('[', lexer)) {
-    uint8_t level = consume_and_count_char('=', lexer);
+    uint8_t count = consume_and_count_char('=', lexer);
 
     if (consume_char('[', lexer)) {
-      scanner->level_count = level;
+      *level = count;
       return true;
     }
   }
@@ -89,104 +100,261 @@ static bool scan_block_start(Scanner *scanner, TSLexer *lexer) {
   return false;
 }
 
-static bool scan_block_end(Scanner *scanner, TSLexer *lexer) {
+// ']' {'='} ']'
+static bool scan_block_end(TSLexer *lexer, uint8_t level) {
   if (consume_char(']', lexer)) {
-    uint8_t level = consume_and_count_char('=', lexer);
-
-    if (scanner->level_count == level && consume_char(']', lexer)) {
-      return true;
-    }
+    uint8_t count = consume_and_count_char('=', lexer);
+    return count == level && consume_char(']', lexer);
   }
 
   return false;
 }
 
-static bool scan_block_content(Scanner *scanner, TSLexer *lexer) {
-  while (lexer->lookahead != 0) {
+static inline uint8_t block_string_level(Scanner *scanner) {
+  return scanner->block_string_depth > 0
+    ? scanner->block_string_levels[scanner->block_string_depth - 1]
+    : 0;
+}
+
+static bool scan_block_comment_content(Scanner *scanner, TSLexer *lexer) {
+  bool has_content = false;
+
+  while (!lexer->eof(lexer)) {
     if (lexer->lookahead == ']') {
       lexer->mark_end(lexer);
 
-      if (scan_block_end(scanner, lexer)) {
-        return true;
+      if (scan_block_end(lexer, scanner->block_comment_level)) {
+        return has_content;
       }
     } else {
       consume(lexer);
     }
+
+    has_content = true;
   }
 
-  return false;
+  lexer->mark_end(lexer);
+  return has_content;
 }
 
-static bool scan_comment_start(Scanner *scanner, TSLexer *lexer) {
-  if (consume_char('-', lexer) && consume_char('-', lexer)) {
-    lexer->mark_end(lexer);
+// Block string content stops at an (unescaped) interpolation or at the closing
+// quote matching the opening level.
+static bool scan_block_string_content(Scanner *scanner, TSLexer *lexer) {
+  uint8_t level = block_string_level(scanner);
+  bool has_content = false;
 
-    if (scan_block_start(scanner, lexer)) {
+  while (!lexer->eof(lexer)) {
+    if (lexer->lookahead == '{') {
+      break;
+    } else if (lexer->lookahead == '\\') {
+      consume(lexer);
+
+      if (lexer->lookahead == '{' || lexer->lookahead == '}') {
+        consume(lexer);
+      }
+    } else if (lexer->lookahead == ']') {
       lexer->mark_end(lexer);
-      lexer->result_symbol = BLOCK_COMMENT_START;
-      return true;
+
+      if (scan_block_end(lexer, level)) {
+        return has_content;
+      }
+    } else {
+      consume(lexer);
     }
+
+    has_content = true;
   }
 
-  return false;
+  lexer->mark_end(lexer);
+  return has_content;
 }
 
-static bool scan_comment_content(Scanner *scanner, TSLexer *lexer) {
-  if (scanner->ending_char == 0) { // block comment
-    if (scan_block_content(scanner, lexer)) {
-      lexer->result_symbol = BLOCK_COMMENT_CONTENT;
-      return true;
-    }
+// Quoted string content stops at escapes (lexed by the grammar), the closing
+// quote, newlines (unterminated string), and (for double quotes) interpolation.
+static bool scan_quote_string_content(TSLexer *lexer, char quote) {
+  bool has_content = false;
 
-    return false;
-  }
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
 
-  while (lexer->lookahead != 0) {
-    if (lexer->lookahead == scanner->ending_char) {
-      reset_state(scanner);
-      lexer->result_symbol = BLOCK_COMMENT_CONTENT;
-      return true;
+    if (c == quote || c == '\\' || c == '\n' || (quote == '"' && c == '{')) {
+      break;
     }
 
     consume(lexer);
+    has_content = true;
   }
 
-  return false;
+  lexer->mark_end(lexer);
+  return has_content;
 }
 
-bool tree_sitter_lua_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+static inline bool is_identifier_char(int32_t c) { return iswalnum(c) || c == '_'; }
+
+// scan_match scans `match` as a keyword, unless it is followed by something
+// that continues a name (same as go-erde's isMatchStatement):
+//
+//   match = 1, match, y = ..., match.x, match[i], match:f(), match += 1, match(x)
+//
+// `match (x) {` is still a match statement.
+static bool scan_match(TSLexer *lexer) {
+  for (const char *c = "match"; *c; c++) {
+    if (!consume_char(*c, lexer)) {
+      return false;
+    }
+  }
+  if (is_identifier_char(lexer->lookahead)) {
+    return false;
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = MATCH_KEYWORD;
+
+  while (iswspace(lexer->lookahead)) {
+    consume(lexer);
+  }
+
+  switch (lexer->lookahead) {
+    case '=':
+    case ',':
+    case '[':
+    case ':':
+      return false;
+    case '.':
+      // `match ...` (varargs) vs `match.x` / `match ..= x`
+      consume(lexer);
+      return consume_char('.', lexer) && consume_char('.', lexer);
+    case '(': {
+      // `match(x)` is a call, `match (x) {` is a match statement.
+      unsigned depth = 0;
+      do {
+        if (lexer->eof(lexer)) {
+          return false;
+        }
+        if (lexer->lookahead == '\'' || lexer->lookahead == '"') {
+          int32_t quote = lexer->lookahead;
+          consume(lexer);
+          while (!lexer->eof(lexer) && lexer->lookahead != quote && lexer->lookahead != '\n') {
+            if (lexer->lookahead == '\\') {
+              consume(lexer);
+            }
+            consume(lexer);
+          }
+        } else if (lexer->lookahead == '(') {
+          depth++;
+        } else if (lexer->lookahead == ')') {
+          depth--;
+        }
+        consume(lexer);
+      } while (depth > 0);
+
+      while (iswspace(lexer->lookahead)) {
+        consume(lexer);
+      }
+      return lexer->lookahead == '{';
+    }
+  }
+
+  // Assignment operators (`match += 1`, `match //= 2`), but not unary
+  // operators (`match -x {`).
+  for (int i = 0; i < 2 && lexer->lookahead > 0 && lexer->lookahead < 128 && strchr("+-*/%^|&~<>", lexer->lookahead); i++) {
+    consume(lexer);
+  }
+  return lexer->lookahead != '=';
+}
+
+bool tree_sitter_erde_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   Scanner *scanner = (Scanner *)payload;
+  bool in_error_recovery = valid_symbols[ERROR_SENTINEL];
 
-  if (valid_symbols[BLOCK_STRING_END] && scan_block_end(scanner, lexer)) {
-    reset_state(scanner);
-    lexer->result_symbol = BLOCK_STRING_END;
+  if (!in_error_recovery) {
+    // Inside strings: never skip whitespace or look for comments.
+    if (valid_symbols[BLOCK_STRING_END] || valid_symbols[BLOCK_STRING_CONTENT]) {
+      if (valid_symbols[BLOCK_STRING_END] && scan_block_end(lexer, block_string_level(scanner))) {
+        if (scanner->block_string_depth > 0) {
+          --scanner->block_string_depth;
+        }
+
+        lexer->result_symbol = BLOCK_STRING_END;
+        return true;
+      }
+
+      if (valid_symbols[BLOCK_STRING_CONTENT] && scan_block_string_content(scanner, lexer)) {
+        lexer->result_symbol = BLOCK_STRING_CONTENT;
+        return true;
+      }
+
+      return false;
+    }
+
+    if (valid_symbols[SINGLE_QUOTE_STRING_CONTENT]) {
+      lexer->result_symbol = SINGLE_QUOTE_STRING_CONTENT;
+      return scan_quote_string_content(lexer, '\'');
+    }
+
+    if (valid_symbols[DOUBLE_QUOTE_STRING_CONTENT]) {
+      lexer->result_symbol = DOUBLE_QUOTE_STRING_CONTENT;
+      return scan_quote_string_content(lexer, '"');
+    }
+
+    if (valid_symbols[BLOCK_COMMENT_END] || valid_symbols[BLOCK_COMMENT_CONTENT]) {
+      if (valid_symbols[BLOCK_COMMENT_END] && scan_block_end(lexer, scanner->block_comment_level)) {
+        lexer->result_symbol = BLOCK_COMMENT_END;
+        return true;
+      }
+
+      if (valid_symbols[BLOCK_COMMENT_CONTENT] && scan_block_comment_content(scanner, lexer)) {
+        lexer->result_symbol = BLOCK_COMMENT_CONTENT;
+        return true;
+      }
+
+      return false;
+    }
+  }
+
+  // Skip horizontal whitespace only, so we know whether a '(' follows on the
+  // same line.
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t' || lexer->lookahead == '\r') {
+    skip(lexer);
+  }
+
+  if (!in_error_recovery && valid_symbols[CALL_OPEN] && consume_char('(', lexer)) {
+    lexer->result_symbol = CALL_OPEN;
     return true;
   }
 
-  if (valid_symbols[BLOCK_STRING_CONTENT] && scan_block_content(scanner, lexer)) {
-    lexer->result_symbol = BLOCK_STRING_CONTENT;
+  while (iswspace(lexer->lookahead)) {
+    skip(lexer);
+  }
+
+  if (!in_error_recovery && valid_symbols[ARROW_BLOCK_OPEN] && consume_char('{', lexer)) {
+    lexer->result_symbol = ARROW_BLOCK_OPEN;
     return true;
   }
 
-  if (valid_symbols[BLOCK_COMMENT_END] && scanner->ending_char == 0 && scan_block_end(scanner, lexer)) {
-    reset_state(scanner);
-    lexer->result_symbol = BLOCK_COMMENT_END;
-    return true;
+  if (!in_error_recovery && valid_symbols[MATCH_KEYWORD] && lexer->lookahead == 'm') {
+    return scan_match(lexer);
   }
 
-  if (valid_symbols[BLOCK_COMMENT_CONTENT] && scan_comment_content(scanner, lexer)) {
-    return true;
+  if (!in_error_recovery && valid_symbols[BLOCK_STRING_START]) {
+    uint8_t level;
+
+    if (scan_block_start(lexer, &level)) {
+      if (scanner->block_string_depth == MAX_BLOCK_STRING_DEPTH) {
+        return false;
+      }
+
+      scanner->block_string_levels[scanner->block_string_depth++] = level;
+      lexer->result_symbol = BLOCK_STRING_START;
+      return true;
+    }
   }
 
-  skip_whitespaces(lexer);
+  if (valid_symbols[BLOCK_COMMENT_START] && consume_char('-', lexer) && consume_char('-', lexer)) {
+    uint8_t level;
 
-  if (valid_symbols[BLOCK_STRING_START] && scan_block_start(scanner, lexer)) {
-    lexer->result_symbol = BLOCK_STRING_START;
-    return true;
-  }
-
-  if (valid_symbols[BLOCK_COMMENT_START]) {
-    if (scan_comment_start(scanner, lexer)) {
+    if (scan_block_start(lexer, &level)) {
+      scanner->block_comment_level = level;
+      lexer->result_symbol = BLOCK_COMMENT_START;
       return true;
     }
   }

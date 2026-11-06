@@ -1,0 +1,150 @@
+================================================================================
+Match (experimental)
+================================================================================
+
+match mode {
+  MOVIE => { a() }
+  "show" | "series" => {}
+  (1 | 2) => {},
+  _ if n > 5 => {}
+  _ => {}
+}
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (match_statement
+    (identifier)
+    (match_arm
+      (identifier)
+      (block
+        (function_call
+          (identifier)
+          (arguments))))
+    (match_arm
+      (string
+        (string_content))
+      (string
+        (string_content))
+      (block))
+    (match_arm
+      (parenthesized_expression
+        (binary_expression
+          (number)
+          (number)))
+      (block))
+    (match_arm
+      (identifier)
+      (binary_expression
+        (identifier)
+        (number))
+      (block))
+    (match_arm
+      (identifier)
+      (block))))
+
+================================================================================
+Match as a name
+================================================================================
+
+local match = s:match('%d')
+match = string.match(s, p)
+match += 1
+match, y = 1, 2
+match.x = 1
+match[1] = 2
+match:f()
+match(x)
+local function match() {}
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (function_call
+        (method_index_expression
+          (identifier)
+          (identifier))
+        (arguments
+          (string
+            (string_content))))))
+  (assignment_statement
+    (variable_list
+      (identifier))
+    (expression_list
+      (function_call
+        (dot_index_expression
+          (identifier)
+          (identifier))
+        (arguments
+          (identifier)
+          (identifier)))))
+  (assignment_statement
+    (variable_list
+      (identifier))
+    (expression_list
+      (number)))
+  (assignment_statement
+    (variable_list
+      (identifier)
+      (identifier))
+    (expression_list
+      (number)
+      (number)))
+  (assignment_statement
+    (variable_list
+      (dot_index_expression
+        (identifier)
+        (identifier)))
+    (expression_list
+      (number)))
+  (assignment_statement
+    (variable_list
+      (bracket_index_expression
+        (identifier)
+        (number)))
+    (expression_list
+      (number)))
+  (function_call
+    (method_index_expression
+      (identifier)
+      (identifier))
+    (arguments))
+  (function_call
+    (identifier)
+    (arguments
+      (identifier)))
+  (function_declaration
+    (scope)
+    (identifier)
+    (parameters)
+    (block)))
+
+================================================================================
+Match subjects that look like names
+================================================================================
+
+match (x) {}
+match -x {}
+match ('(') { _ => {} }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (match_statement
+    (parenthesized_expression
+      (identifier)))
+  (match_statement
+    (unary_expression
+      (identifier)))
+  (match_statement
+    (parenthesized_expression
+      (string
+        (string_content)))
+    (match_arm
+      (identifier)
+      (block))))

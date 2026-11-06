@@ -19,12 +19,20 @@
     ])
   (expression_list
     .
-    value: (function_definition))) @definition.function
+    value: (arrow_function))) @definition.function
+
+(variable_declaration
+  (variable_list
+    .
+    name: (identifier) @name)
+  (expression_list
+    .
+    value: (arrow_function))) @definition.function
 
 (table_constructor
   (field
     name: (identifier) @name
-    value: (function_definition))) @definition.function
+    value: (arrow_function))) @definition.function
 
 (function_call
   name: [

@@ -1,105 +1,118 @@
 ================================================================================
-nil
+Literals
 ================================================================================
 
-exp(nil)
+return nil, true, false, 1, 0.5, .5, 1e10, 0xFF, 0x1p4, 0b101, ...
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (nil))))
+  (return_statement
+    (expression_list
+      (nil)
+      (true)
+      (false)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (number)
+      (vararg_expression))))
 
 ================================================================================
-false
+Operators
 ================================================================================
 
-exp(false)
+return a || b && c == d != e < f .. g + h * i ^ j
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (false))))
+  (return_statement
+    (expression_list
+      (binary_expression
+        (identifier)
+        (binary_expression
+          (identifier)
+          (binary_expression
+            (binary_expression
+              (binary_expression
+                (identifier)
+                (identifier))
+              (identifier))
+            (binary_expression
+              (identifier)
+              (binary_expression
+                (identifier)
+                (binary_expression
+                  (identifier)
+                  (binary_expression
+                    (identifier)
+                    (identifier)))))))))))
 
 ================================================================================
-true
+Unary operators
 ================================================================================
 
-exp(true)
+return !a, #b, -c, ~d
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (true))))
+  (return_statement
+    (expression_list
+      (unary_expression
+        (identifier))
+      (unary_expression
+        (identifier))
+      (unary_expression
+        (identifier))
+      (unary_expression
+        (identifier)))))
 
 ================================================================================
-number
+Bitwise operators
 ================================================================================
 
-exp(
-  3,
-  345,
-  0xff,
-  0xBEBADA,
-  .0,
-  3.,
-  3.0,
-  3.1416,
-  314.16e-2,
-  0.31416E1,
-  34e1,
-  0x0.1E,
-  0xA23p-4,
-  0x.0p-3,
-  0x.FfffFFFF,
-  0X1.921FB54442D18P+1,
-  42LL,
-  0x2aULL,
-  12.5i,
-  0x.01p-1I,
-  0b0,
-  0B10,
-  0b0LL,
-  0B10ull,
-  0b0I,
-  0B0i
-)
+return a | b ~ c & d << e >> f
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
-      (number)
+  (return_statement
+    (expression_list
+      (binary_expression
+        (identifier)
+        (binary_expression
+          (identifier)
+          (binary_expression
+            (identifier)
+            (binary_expression
+              (binary_expression
+                (identifier)
+                (identifier))
+              (identifier))))))))
+
+================================================================================
+Lua keywords are identifiers
+================================================================================
+
+local not, and, or, end, then = 1, 2, 3, 4, 5
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier)
+      (identifier))
+    (expression_list
       (number)
       (number)
       (number)
@@ -107,579 +120,67 @@ exp(
       (number))))
 
 ================================================================================
-string
+Tables
 ================================================================================
 
-exp(
-  "string",
-  'string',
-  "c",
-  'c',
-  "0",
-  [[ string ]],
-  [[
-    string
-    string
-  ]],
-  [=[
-    string
-    string
-  ]=],
-  [=[[string]]=],
-  [=[
-    [string]
-  ]=],
-  [=[
-    [string
-  ]=],
-  [=[
-    string]
-  ]=],
-  [=[
-    [[string
-  ]=],
-  [=[
-    string]]
-  ]=]
-)
-
+return { 1, a = 2, [b] = 3, }
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (function_call
-    (identifier)
-    (arguments
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content))
-      (string
-        (string_content)))))
-
-================================================================================
-string :: escape_sequence
-================================================================================
-
-exp(
-  "a\
-  b",
-  'a\z',
-  'a\z
-  ',
-  'a\z
-  b',
-  "'a\z\
-  b'"
-)
-
-
---------------------------------------------------------------------------------
-
-(chunk
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (string
-        content: (string_content
-          (escape_sequence)))
-      (string
-        content: (string_content
-          (escape_sequence)))
-      (string
-        content: (string_content
-          (escape_sequence)))
-      (string
-        content: (string_content
-          (escape_sequence)))
-      (string
-        content: (string_content
-          (escape_sequence)
-          (escape_sequence))))))
-
-================================================================================
-vararg_expression
-================================================================================
-
-exp(...)
-
---------------------------------------------------------------------------------
-
-(chunk
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (vararg_expression))))
-
-================================================================================
-function_definition
-================================================================================
-
-f1 = function() end
-
-f2 = function() return end
-
-f3 = function(...)
-  return ...
-end
-
-f4 = function(a1, ...)
-  print(...)
-  return a1
-end
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
+  (return_statement
     (expression_list
-      value: (function_definition
-        parameters: (parameters))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (function_definition
-        parameters: (parameters)
-        body: (block
-          (return_statement)))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (function_definition
-        parameters: (parameters
-          (vararg_expression))
-        body: (block
-          (return_statement
-            (expression_list
-              (vararg_expression)))))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (function_definition
-        parameters: (parameters
-          name: (identifier)
-          (vararg_expression))
-        body: (block
-          (function_call
-            name: (identifier)
-            arguments: (arguments
-              (vararg_expression)))
-          (return_statement
-            (expression_list
-              (identifier))))))))
-
-================================================================================
-variable ::: identifier
-================================================================================
-
-v1 = n1
-
-v2, v3 = n2, n3
-
-পাই = π
-
-🙂 = 🙃
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (identifier)))
-  (assignment_statement
-    (variable_list
-      name: (identifier)
-      name: (identifier))
-    (expression_list
-      value: (identifier)
-      value: (identifier)))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (identifier)))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (identifier))))
-
-================================================================================
-variable ::: bracket_index_expression
-================================================================================
-
-v1 = tbl[k1]
-
-v2, v3[v] = tbl[k1]["k2"]
-
-v4 = tbk[getK1()][getK2()]
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (bracket_index_expression
-        table: (identifier)
-        field: (identifier))))
-  (assignment_statement
-    (variable_list
-      name: (identifier)
-      name: (bracket_index_expression
-        table: (identifier)
-        field: (identifier)))
-    (expression_list
-      value: (bracket_index_expression
-        table: (bracket_index_expression
-          table: (identifier)
-          field: (identifier))
-        field: (string
-          content: (string_content)))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (bracket_index_expression
-        table: (bracket_index_expression
-          table: (identifier)
-          field: (function_call
-            name: (identifier)
-            arguments: (arguments)))
-        field: (function_call
-          name: (identifier)
-          arguments: (arguments))))))
-
-================================================================================
-variable ::: dot_index_expression
-================================================================================
-
-v1 = tbl.k1
-
-v2 = tbl.k1.k2
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (dot_index_expression
-        table: (identifier)
-        field: (identifier))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (dot_index_expression
-        table: (dot_index_expression
-          table: (identifier)
-          field: (identifier))
-        field: (identifier)))))
-
-================================================================================
-function_call ::: bracket_index_expression | dot_index_expression
-================================================================================
-
-v1 = tbl[k1].k2(a1, "a2", a3())
-
-v2 = tbl[k1] { f1 = true }
-
-v3 = tbl[k1] "a1"
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (function_call
-        name: (dot_index_expression
-          table: (bracket_index_expression
-            table: (identifier)
-            field: (identifier))
-          field: (identifier))
-        arguments: (arguments
-          (identifier)
-          (string
-            content: (string_content))
-          (function_call
-            name: (identifier)
-            arguments: (arguments))))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (function_call
-        name: (bracket_index_expression
-          table: (identifier)
-          field: (identifier))
-        arguments: (arguments
-          (table_constructor
-            (field
-              name: (identifier)
-              value: (true)))))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (function_call
-        name: (bracket_index_expression
-          table: (identifier)
-          field: (identifier))
-        arguments: (arguments
-          (string
-            content: (string_content)))))))
-
-================================================================================
-function_call ::: method_index_expression
-================================================================================
-
-tbl.k1:m1(a1, "a2")
-
-tbl[k1]:m1 { f1, "f2" }
-
-tbl:m1 "a1"
-
---------------------------------------------------------------------------------
-
-(chunk
-  (function_call
-    name: (method_index_expression
-      table: (dot_index_expression
-        table: (identifier)
-        field: (identifier))
-      method: (identifier))
-    arguments: (arguments
-      (identifier)
-      (string
-        content: (string_content))))
-  (function_call
-    name: (method_index_expression
-      table: (bracket_index_expression
-        table: (identifier)
-        field: (identifier))
-      method: (identifier))
-    arguments: (arguments
       (table_constructor
         (field
-          value: (identifier))
+          (number))
         (field
-          value: (string
-            content: (string_content))))))
-  (function_call
-    name: (method_index_expression
-      table: (identifier)
-      method: (identifier))
-    arguments: (arguments
-      (string
-        content: (string_content)))))
-
-================================================================================
-parenthesized_expression
-================================================================================
-
-v = ( true )
-
-v = ( ( false ) )
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (parenthesized_expression
-        (true))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (parenthesized_expression
-        (parenthesized_expression
-          (false))))))
-
-================================================================================
-table_constructor
-================================================================================
-
-tbl1 = {
-  ["k1"] = {
-    ['k2'] = true,
-    k3 = false
-  }
-}
-
-local tbl2 = {
-  k1 = {
-    { 'v1', "v2" }
-  }
-}
-
-local tbl3 = { "v1", k1 = "v2" }
-
---------------------------------------------------------------------------------
-
-(chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (table_constructor
+          (identifier)
+          (number))
         (field
-          name: (string
-            content: (string_content))
-          value: (table_constructor
-            (field
-              name: (string
-                content: (string_content))
-              value: (true))
-            (field
-              name: (identifier)
-              value: (false)))))))
-  local_declaration: (variable_declaration
-    (assignment_statement
-      (variable_list
-        name: (identifier))
-      (expression_list
-        value: (table_constructor
-          (field
-            name: (identifier)
-            value: (table_constructor
-              (field
-                value: (table_constructor
-                  (field
-                    value: (string
-                      content: (string_content)))
-                  (field
-                    value: (string
-                      content: (string_content)))))))))))
-  local_declaration: (variable_declaration
-    (assignment_statement
-      (variable_list
-        name: (identifier))
-      (expression_list
-        value: (table_constructor
-          (field
-            value: (string
-              content: (string_content)))
-          (field
-            name: (identifier)
-            value: (string
-              content: (string_content))))))))
+          (identifier)
+          (number))))))
 
 ================================================================================
-binary_expression
+Index chains
 ================================================================================
 
-a = i + j * 3 - k % 5
-
-b = i + j % 3 ^ 2
-
-c = i * 2 ^ j
+return a.b[c]:d().e
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
+  (return_statement
     (expression_list
-      value: (binary_expression
-        left: (binary_expression
-          left: (identifier)
-          right: (binary_expression
-            left: (identifier)
-            right: (number)))
-        right: (binary_expression
-          left: (identifier)
-          right: (number)))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (binary_expression
-        left: (identifier)
-        right: (binary_expression
-          left: (identifier)
-          right: (binary_expression
-            left: (number)
-            right: (number))))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (binary_expression
-        left: (identifier)
-        right: (binary_expression
-          left: (number)
-          right: (identifier))))))
+      (dot_index_expression
+        (function_call
+          (method_index_expression
+            (bracket_index_expression
+              (dot_index_expression
+                (identifier)
+                (identifier))
+              (identifier))
+            (identifier))
+          (arguments))
+        (identifier)))))
 
 ================================================================================
-unary_expression
+String index chains
 ================================================================================
 
-v1 = #l
-
-v2 = -n
-
-v3 = not c1 and r1 or r2
+return 'abc':upper(), "x".len
 
 --------------------------------------------------------------------------------
 
 (chunk
-  (assignment_statement
-    (variable_list
-      name: (identifier))
+  (return_statement
     (expression_list
-      value: (unary_expression
-        operand: (identifier))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (unary_expression
-        operand: (identifier))))
-  (assignment_statement
-    (variable_list
-      name: (identifier))
-    (expression_list
-      value: (binary_expression
-        left: (binary_expression
-          left: (unary_expression
-            operand: (identifier))
-          right: (identifier))
-        right: (identifier)))))
+      (function_call
+        (method_index_expression
+          (string
+            (string_content))
+          (identifier))
+        (arguments))
+      (dot_index_expression
+        (string
+          (string_content))
+        (identifier)))))

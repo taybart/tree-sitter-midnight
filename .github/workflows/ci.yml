@@ -29,63 +29,17 @@ jobs:
       - name: Run tests
         uses: tree-sitter/parser-test-action@v2
 
-      - name: Clone apisix corpus
+      - name: Clone erde corpus
         uses: actions/checkout@v6
         with:
-          path: examples/apisix
-          repository: apache/apisix
-          sparse-checkout: apisix/
-      - name: Clone kong corpus
-        uses: actions/checkout@v6
-        with:
-          path: examples/kong
-          repository: Kong/kong
-          sparse-checkout: kong/
-      - name: Clone lua corpus
-        uses: actions/checkout@v6
-        with:
-          path: examples/lua
-          repository: lua/lua
-          ref: e05590591410a5e007a1e3f1691f6c1cf9d8fe45
-          sparse-checkout: testes/
-      - name: Clone luvit corpus
-        uses: actions/checkout@v6
-        with:
-          path: examples/luvit
-          repository: luvit/luvit
-      - name: Clone neovim corpus
-        uses: actions/checkout@v6
-        with:
-          path: examples/neovim
-          repository: neovim/neovim
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |-
-            /test/**/*.lua
-            /scripts/**/*.lua
-            /runtime/**/*.lua
-      - name: Clone xmake corpus
-        uses: actions/checkout@v6
-        if: runner.os != 'Windows'
-        with:
-          path: examples/xmake
-          repository: xmake-io/xmake
+          path: examples/erde
+          repository: erde-lang/erde
 
       - name: Parse examples
         uses: tree-sitter/parse-action@v4
         with:
           files: |-
-            examples/apisix/**/*.lua
-            examples/kong/**/*.lua
-            examples/lua/**/*.lua
-            examples/luvit/**/*.lua
-            examples/neovim/**/*.lua
-            examples/xmake/**/*.lua
-            # FIXME: these fail to parse on Windows
-            !examples/lua/testes/api.lua
-            !examples/lua/testes/calls.lua
-            !examples/lua/testes/db.lua
-          invalid-files: |-
-            examples/neovim/test/functional/fixtures/lua/syntax_error.lua
+            examples/erde/**/*.erde
 
   fuzz:
     runs-on: ubuntu-latest

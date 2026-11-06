@@ -1,0 +1,24 @@
+local a = <Card title="hi" hx-post={url}/>
+--        ^ tag.delimiter
+--         ^ tag
+--              ^ tag.attribute
+--                    ^ string
+--                         ^ tag.attribute
+--                                 ^ punctuation.special
+--                                  ^ variable
+--                                      ^ tag.delimiter
+local b = <p class='x'>hi {name}</p>
+--         ^ tag.builtin
+--           ^ tag.attribute
+--                    ^ tag.delimiter
+--                        ^ punctuation.special
+--                              ^ tag.delimiter
+--                                ^ tag.builtin
+local c = <ui.Button {...props}/>
+--         ^ tag
+--                   ^ punctuation.special
+--                    ^ operator
+local d = <my-el/>
+--         ^ tag.builtin
+local e = x < y
+--          ^ operator

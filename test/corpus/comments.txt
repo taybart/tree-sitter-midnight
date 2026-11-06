@@ -1,102 +1,49 @@
 ================================================================================
-comment
+Line comments
 ================================================================================
 
---
--- single-line comment, below an empty single-line comment
-
---[[]]
-
---[[
-print("block comment")
---]]
-
---[[
-print("block comment")
-]]
-
--- [[
-print("not block comment")
---]]
-
---[=[[print("level 1 block comment")]]=]
-
---[=[
-  [print("level 1 block comment")]
-]=]
-
---[=[
-  [print("level 1 block comment")
-]=]
-
---[=[
-  print("level 1 block comment")]
-]=]
-
---[=[
-  [[print("level 1 block comment")
-]=]
-
---[=[
-  print("level 1 block comment")]]
-]=]
-
---[==[
-print("level 2 block comment")
--- ]==]
-
---[==[
-print("level 2 block comment")
-]==]
-
--- [==[
-print("not level 2 block comment")
---]==]
+-- a
+local b -- c
 
 --------------------------------------------------------------------------------
 
 (chunk
   (comment
-    content: (comment_content))
+    (comment_content))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier)))
   (comment
-    content: (comment_content))
+    (comment_content)))
+
+================================================================================
+Block comments
+================================================================================
+
+--[[ a
+]]
+--[==[ b ]] ]==]
+
+--------------------------------------------------------------------------------
+
+(chunk
   (comment
-    content: (comment_content))
+    (comment_content))
   (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
+    (comment_content)))
+
+================================================================================
+Hash bang
+================================================================================
+
+#!/usr/bin/env erde
+print()
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (hash_bang_line)
   (function_call
-    name: (identifier)
-    arguments: (arguments
-      (string
-        content: (string_content))))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (comment
-    content: (comment_content))
-  (function_call
-    name: (identifier)
-    arguments: (arguments
-      (string
-        content: (string_content))))
-  (comment
-    content: (comment_content)))
+    (identifier)
+    (arguments)))

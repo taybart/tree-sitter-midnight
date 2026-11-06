@@ -4,73 +4,34 @@
 [
   "goto"
   "in"
-  "local"
-  "global"
 ] @keyword
 
+(scope) @keyword.modifier
+
+[
+  (break_statement)
+  (continue_statement)
+] @keyword.repeat
+
+"do" @keyword
+
+[
+  "while"
+  "repeat"
+  "until"
+  "for"
+] @keyword.repeat
+
+[
+  "if"
+  "elseif"
+  "else"
+  "match"
+] @keyword.conditional
+
+"function" @keyword.function
+
 (label_statement) @label
-
-(break_statement) @keyword
-
-(do_statement
-  [
-    "do"
-    "end"
-  ] @keyword)
-
-(while_statement
-  [
-    "while"
-    "do"
-    "end"
-  ] @repeat)
-
-(repeat_statement
-  [
-    "repeat"
-    "until"
-  ] @repeat)
-
-(if_statement
-  [
-    "if"
-    "elseif"
-    "else"
-    "then"
-    "end"
-  ] @conditional)
-
-(elseif_statement
-  [
-    "elseif"
-    "then"
-    "end"
-  ] @conditional)
-
-(else_statement
-  [
-    "else"
-    "end"
-  ] @conditional)
-
-(for_statement
-  [
-    "for"
-    "do"
-    "end"
-  ] @repeat)
-
-(function_declaration
-  [
-    "function"
-    "end"
-  ] @keyword.function)
-
-(function_definition
-  [
-    "function"
-    "end"
-  ] @keyword.function)
 
 ; Operators
 (binary_expression
@@ -79,18 +40,20 @@
 (unary_expression
   operator: _ @operator)
 
-"=" @operator
+(assignment_statement
+  operator: _ @operator)
 
 [
-  "and"
-  "not"
-  "or"
-] @keyword.operator
+  "="
+  "->"
+  "=>"
+] @operator
 
 ; Punctuations
 [
   ";"
   ":"
+  "::"
   ","
   "."
 ] @punctuation.delimiter
@@ -105,17 +68,28 @@
   "}"
 ] @punctuation.bracket
 
+(interpolation
+  [
+    "{"
+    "}"
+  ] @punctuation.special)
+
 ; Variables
 (identifier) @variable
+
+; `_` (match anything) match arm
+(match_arm
+  pattern: (identifier) @character.special
+  (#eq? @character.special "_"))
+
+(match_arm
+  "|" @punctuation.delimiter)
 
 ((identifier) @variable.builtin
   (#eq? @variable.builtin "self"))
 
-(variable_list
-  (attribute
-    "<" @punctuation.bracket
-    (identifier) @attribute
-    ">" @punctuation.bracket))
+((identifier) @module.builtin
+  (#any-of? @module.builtin "_G" "_ENV"))
 
 ; Constants
 ((identifier) @constant
@@ -132,10 +106,10 @@
 
 ; Tables
 (field
-  name: (identifier) @field)
+  name: (identifier) @variable.member)
 
 (dot_index_expression
-  field: (identifier) @field)
+  field: (identifier) @variable.member)
 
 (table_constructor
   [
@@ -143,9 +117,24 @@
     "}"
   ] @constructor)
 
+(destructured_field
+  key: (identifier) @variable.member)
+
 ; Functions
 (parameters
-  (identifier) @parameter)
+  (identifier) @variable.parameter)
+
+(parameters
+  (default_parameter
+    name: (identifier) @variable.parameter))
+
+(parameters
+  (vararg_expression)
+  .
+  (identifier) @variable.parameter)
+
+(arrow_function
+  parameters: (identifier) @variable.parameter)
 
 (function_declaration
   name: [
@@ -156,7 +145,7 @@
 
 (function_declaration
   name: (method_index_expression
-    method: (identifier) @method))
+    method: (identifier) @function.method))
 
 (assignment_statement
   (variable_list
@@ -168,12 +157,20 @@
     ])
   (expression_list
     .
-    value: (function_definition)))
+    value: (arrow_function)))
+
+(variable_declaration
+  (variable_list
+    .
+    name: (identifier) @function)
+  (expression_list
+    .
+    value: (arrow_function)))
 
 (table_constructor
   (field
     name: (identifier) @function
-    value: (function_definition)))
+    value: (arrow_function)))
 
 (function_call
   name: [
@@ -181,24 +178,74 @@
     (dot_index_expression
       field: (identifier) @function.call)
     (method_index_expression
-      method: (identifier) @method.call)
+      method: (identifier) @function.method.call)
   ])
 
 (function_call
   (identifier) @function.builtin
   (#any-of? @function.builtin
-    ; built-in functions in Lua 5.1
     "assert" "collectgarbage" "dofile" "error" "getfenv" "getmetatable" "ipairs" "load" "loadfile"
-    "loadstring" "module" "next" "pairs" "pcall" "print" "rawequal" "rawget" "rawset" "require"
-    "select" "setfenv" "setmetatable" "tonumber" "tostring" "type" "unpack" "xpcall"))
+    "loadstring" "module" "next" "pairs" "pcall" "print" "rawequal" "rawget" "rawlen" "rawset"
+    "require" "select" "setfenv" "setmetatable" "tonumber" "tostring" "type" "unpack" "xpcall"))
 
 ; Others
-(comment) @comment
+(comment) @comment @spell
 
-(hash_bang_line) @preproc
+((comment) @comment.documentation
+  (#match? @comment.documentation "^---"))
+
+(hash_bang_line) @keyword.directive
 
 (number) @number
 
 (string) @string
 
 (escape_sequence) @string.escape
+
+; JSX (go-erde `-X jsx`)
+(jsx_tag_name) @tag
+
+; HTML elements (lowercase, or w/ `-` / `:`); other tags are components
+((jsx_tag_name) @tag.builtin
+  (#match? @tag.builtin "^([a-z][^.]*|[^.]*[-:][^.]*)$"))
+
+(jsx_attribute_name) @tag.attribute
+
+(jsx_opening_element
+  [
+    "<"
+    ">"
+  ] @tag.delimiter)
+
+(jsx_closing_element
+  [
+    "</"
+    ">"
+  ] @tag.delimiter)
+
+(jsx_self_closing_element
+  [
+    "<"
+    "/>"
+  ] @tag.delimiter)
+
+(jsx_attribute
+  "=" @operator)
+
+[
+  (jsx_expression
+    [
+      "{"
+      "}"
+    ] @punctuation.special)
+  (jsx_spread_attribute
+    [
+      "{"
+      "}"
+    ] @punctuation.special)
+]
+
+(jsx_spread_attribute
+  "..." @operator)
+
+(jsx_text) @none @spell
