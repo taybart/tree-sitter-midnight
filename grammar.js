@@ -629,8 +629,26 @@ export default grammar({
           repeat($._jsx_child),
           field('close_tag', $.jsx_closing_element)
         ),
+        // <style> / <script> content is raw text (like HTML)
+        seq(
+          field(
+            'open_tag',
+            alias($._jsx_raw_text_opening_element, $.jsx_opening_element)
+          ),
+          optional($.jsx_raw_text),
+          field('close_tag', $.jsx_closing_element)
+        ),
         $.jsx_self_closing_element
       ),
+    _jsx_raw_text_opening_element: ($) =>
+      seq(
+        '<',
+        field('name', alias(choice('style', 'script'), $.jsx_tag_name)),
+        repeat(field('attribute', $._jsx_attribute)),
+        '>'
+      ),
+    // up to the closing tag (anything but `</`)
+    jsx_raw_text: (_) => token(prec(1, /([^<]|<[^\/])+/)),
     jsx_opening_element: ($) =>
       seq(
         '<',

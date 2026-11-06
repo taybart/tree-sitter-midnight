@@ -126,3 +126,37 @@ local a = x < y && f()<2 && t[1]<3 && (x)<4
           (parenthesized_expression
             (identifier))
           (number))))))
+
+================================================================================
+JSX <style> / <script> content is raw text
+================================================================================
+
+local style = <html><style>
+  html, body { color: #fff; }
+</style><script>if (a < b) { go() }</script></html>
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (jsx_element
+        (jsx_opening_element
+          (jsx_tag_name))
+        (jsx_element
+          (jsx_opening_element
+            (jsx_tag_name))
+          (jsx_raw_text)
+          (jsx_closing_element
+            (jsx_tag_name)))
+        (jsx_element
+          (jsx_opening_element
+            (jsx_tag_name))
+          (jsx_raw_text)
+          (jsx_closing_element
+            (jsx_tag_name)))
+        (jsx_closing_element
+          (jsx_tag_name))))))

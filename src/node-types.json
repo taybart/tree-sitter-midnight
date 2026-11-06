@@ -1145,6 +1145,10 @@
           "named": true
         },
         {
+          "type": "jsx_raw_text",
+          "named": true
+        },
+        {
           "type": "jsx_self_closing_element",
           "named": true
         },
@@ -1960,6 +1964,10 @@
   },
   {
     "type": "jsx_attribute_name",
+    "named": true
+  },
+  {
+    "type": "jsx_raw_text",
     "named": true
   },
   {
