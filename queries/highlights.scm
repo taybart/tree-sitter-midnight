@@ -202,50 +202,50 @@
 
 (escape_sequence) @string.escape
 
-; JSX (go-erde `-X jsx`)
-(jsx_tag_name) @tag
+; Markup (go-erde `-X markup`)
+(markup_tag_name) @tag
 
 ; HTML elements (lowercase, or w/ `-` / `:`); other tags are components
-((jsx_tag_name) @tag.builtin
+((markup_tag_name) @tag.builtin
   (#match? @tag.builtin "^([a-z][^.]*|[^.]*[-:][^.]*)$"))
 
-(jsx_attribute_name) @tag.attribute
+(markup_attribute_name) @tag.attribute
 
-(jsx_opening_element
+(markup_opening_element
   [
     "<"
     ">"
   ] @tag.delimiter)
 
-(jsx_closing_element
+(markup_closing_element
   [
     "</"
     ">"
   ] @tag.delimiter)
 
-(jsx_self_closing_element
+(markup_self_closing_element
   [
     "<"
     "/>"
   ] @tag.delimiter)
 
-(jsx_attribute
+(markup_attribute
   "=" @operator)
 
 [
-  (jsx_expression
+  (markup_expression
     [
       "{"
       "}"
     ] @punctuation.special)
-  (jsx_spread_attribute
+  (markup_spread_attribute
     [
       "{"
       "}"
     ] @punctuation.special)
 ]
 
-(jsx_spread_attribute
+(markup_spread_attribute
   "..." @operator)
 
-(jsx_text) @none @spell
+(markup_text) @none @spell

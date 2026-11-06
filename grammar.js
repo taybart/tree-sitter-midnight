@@ -397,7 +397,7 @@ export default grammar({
         $.table_constructor,
         $.binary_expression,
         $.unary_expression,
-        $.jsx_element
+        $.markup_element
       ),
 
     nil: (_) => 'nil',
@@ -615,81 +615,81 @@ export default grammar({
         )
       ),
 
-    // Experimental (go-erde w/ `-X jsx`), always parsed here since the
+    // Experimental (go-erde w/ `-X markup`), always parsed here since the
     // compiler is what enforces the experiment. An element can only start
     // where an expression can, so `a < b` is still a comparison.
     //
     //   <div class="x" id={id}>text {expr}</div>
     //   <Card {...props} title="t"/>
     //   <>fragment</>
-    jsx_element: ($) =>
+    markup_element: ($) =>
       choice(
         seq(
-          field('open_tag', $.jsx_opening_element),
-          repeat($._jsx_child),
-          field('close_tag', $.jsx_closing_element)
+          field('open_tag', $.markup_opening_element),
+          repeat($._markup_child),
+          field('close_tag', $.markup_closing_element)
         ),
         // <style> / <script> content is raw text (like HTML)
         seq(
           field(
             'open_tag',
-            alias($._jsx_raw_text_opening_element, $.jsx_opening_element)
+            alias($._markup_raw_text_opening_element, $.markup_opening_element)
           ),
-          optional($.jsx_raw_text),
-          field('close_tag', $.jsx_closing_element)
+          optional($.markup_raw_text),
+          field('close_tag', $.markup_closing_element)
         ),
-        $.jsx_self_closing_element
+        $.markup_self_closing_element
       ),
-    _jsx_raw_text_opening_element: ($) =>
+    _markup_raw_text_opening_element: ($) =>
       seq(
         '<',
-        field('name', alias(choice('style', 'script'), $.jsx_tag_name)),
-        repeat(field('attribute', $._jsx_attribute)),
+        field('name', alias(choice('style', 'script'), $.markup_tag_name)),
+        repeat(field('attribute', $._markup_attribute)),
         '>'
       ),
     // up to the closing tag (anything but `</`)
-    jsx_raw_text: (_) => token(prec(1, /([^<]|<[^\/])+/)),
-    jsx_opening_element: ($) =>
+    markup_raw_text: (_) => token(prec(1, /([^<]|<[^\/])+/)),
+    markup_opening_element: ($) =>
       seq(
         '<',
         optional(
           seq(
-            field('name', $.jsx_tag_name),
-            repeat(field('attribute', $._jsx_attribute))
+            field('name', $.markup_tag_name),
+            repeat(field('attribute', $._markup_attribute))
           )
         ),
         '>'
       ),
-    jsx_closing_element: ($) =>
-      seq('</', optional(field('name', $.jsx_tag_name)), '>'),
-    jsx_self_closing_element: ($) =>
+    markup_closing_element: ($) =>
+      seq('</', optional(field('name', $.markup_tag_name)), '>'),
+    markup_self_closing_element: ($) =>
       seq(
         '<',
-        field('name', $.jsx_tag_name),
-        repeat(field('attribute', $._jsx_attribute)),
+        field('name', $.markup_tag_name),
+        repeat(field('attribute', $._markup_attribute)),
         '/>'
       ),
 
     // Lowercase (or w/ `-` / `:`) names are HTML elements, others are
     // (dotted) names of components, ex) `ui.Button`.
-    jsx_tag_name: (_) => /[a-zA-Z_][a-zA-Z0-9_\-.:]*/,
+    markup_tag_name: (_) => /[a-zA-Z_][a-zA-Z0-9_\-.:]*/,
 
-    _jsx_attribute: ($) => choice($.jsx_attribute, $.jsx_spread_attribute),
+    _markup_attribute: ($) => choice($.markup_attribute, $.markup_spread_attribute),
     // ex) `hx-post="/x"`, `@click={f}`, `x-on:click.prevent`, `disabled`
-    jsx_attribute: ($) =>
+    markup_attribute: ($) =>
       seq(
-        field('name', $.jsx_attribute_name),
+        field('name', $.markup_attribute_name),
         optional(
-          seq('=', field('value', choice($.string, $.jsx_expression)))
+          seq('=', field('value', choice($.string, $.markup_expression)))
         )
       ),
-    jsx_attribute_name: (_) => /[a-zA-Z_@:][a-zA-Z0-9_\-.:]*/,
-    jsx_spread_attribute: ($) => seq('{', '...', $.expression, '}'),
+    markup_attribute_name: (_) => /[a-zA-Z_@:][a-zA-Z0-9_\-.:]*/,
+    markup_spread_attribute: ($) => seq('{', '...', $.expression, '}'),
 
-    _jsx_child: ($) => choice($.jsx_text, $.jsx_element, $.jsx_expression),
-    jsx_text: (_) => /[^{}<\s]([^{}<]*[^{}<\s])?/,
+    _markup_child: ($) => choice($.markup_text, $.markup_element, $.markup_expression),
+    markup_text: (_) => /[^{}<\s]([^{}<]*[^{}<\s])?/,
     // `{}` (or w/ only a comment) is allowed, same as the compiler.
-    jsx_expression: ($) => seq('{', optional($.expression), '}'),
+    markup_expression: ($) => seq('{', optional($.expression), '}'),
 
     identifier: (_) => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
