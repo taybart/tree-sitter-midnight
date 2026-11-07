@@ -29674,11 +29674,11 @@ static const bool ts_external_scanner_states[14][EXTERNAL_TOKEN_COUNT] = {
 #ifdef __cplusplus
 extern "C" {
 #endif
-void *tree_sitter_erde_external_scanner_create(void);
-void tree_sitter_erde_external_scanner_destroy(void *);
-bool tree_sitter_erde_external_scanner_scan(void *, TSLexer *, const bool *);
-unsigned tree_sitter_erde_external_scanner_serialize(void *, char *);
-void tree_sitter_erde_external_scanner_deserialize(void *, const char *, unsigned);
+void *tree_sitter_midnight_external_scanner_create(void);
+void tree_sitter_midnight_external_scanner_destroy(void *);
+bool tree_sitter_midnight_external_scanner_scan(void *, TSLexer *, const bool *);
+unsigned tree_sitter_midnight_external_scanner_serialize(void *, char *);
+void tree_sitter_midnight_external_scanner_deserialize(void *, const char *, unsigned);
 
 #ifdef TREE_SITTER_HIDE_SYMBOLS
 #define TS_PUBLIC
@@ -29688,7 +29688,7 @@ void tree_sitter_erde_external_scanner_deserialize(void *, const char *, unsigne
 #define TS_PUBLIC __attribute__((visibility("default")))
 #endif
 
-TS_PUBLIC const TSLanguage *tree_sitter_erde(void) {
+TS_PUBLIC const TSLanguage *tree_sitter_midnight(void) {
   static const TSLanguage language = {
     .abi_version = LANGUAGE_VERSION,
     .symbol_count = SYMBOL_COUNT,
@@ -29723,14 +29723,14 @@ TS_PUBLIC const TSLanguage *tree_sitter_erde(void) {
     .external_scanner = {
       &ts_external_scanner_states[0][0],
       ts_external_scanner_symbol_map,
-      tree_sitter_erde_external_scanner_create,
-      tree_sitter_erde_external_scanner_destroy,
-      tree_sitter_erde_external_scanner_scan,
-      tree_sitter_erde_external_scanner_serialize,
-      tree_sitter_erde_external_scanner_deserialize,
+      tree_sitter_midnight_external_scanner_create,
+      tree_sitter_midnight_external_scanner_destroy,
+      tree_sitter_midnight_external_scanner_scan,
+      tree_sitter_midnight_external_scanner_serialize,
+      tree_sitter_midnight_external_scanner_deserialize,
     },
     .primary_state_ids = ts_primary_state_ids,
-    .name = "erde",
+    .name = "midnight",
     .max_reserved_word_set_size = 0,
     .metadata = {
       .major_version = 0,

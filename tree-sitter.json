@@ -2,19 +2,20 @@
   "$schema": "https://tree-sitter.github.io/tree-sitter/assets/schemas/config.schema.json",
   "grammars": [
     {
-      "name": "erde",
-      "scope": "source.erde",
+      "name": "midnight",
+      "scope": "source.midnight",
       "path": ".",
       "file-types": [
-        "erde"
+        "mn",
+        "midnight"
       ],
       "highlights": "queries/highlights.scm",
       "injections": "queries/injections.scm",
       "locals": "queries/locals.scm",
       "tags": "queries/tags.scm",
-      "injection-regex": "^erde$",
-      "camelcase": "Erde",
-      "title": "Erde"
+      "injection-regex": "^midnight$",
+      "camelcase": "Midnight",
+      "title": "Midnight"
     }
   ],
   "metadata": {
@@ -32,9 +33,9 @@
       }
     ],
     "links": {
-      "repository": "https://github.com/taybart/tree-sitter-erde"
+      "repository": "https://github.com/taybart/tree-sitter-midnight"
     },
-    "description": "Erde grammar for tree-sitter"
+    "description": "Midnight grammar for tree-sitter"
   },
   "bindings": {
     "c": true,

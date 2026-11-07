@@ -1,11 +1,11 @@
 {
-  "name": "tree-sitter-erde",
+  "name": "tree-sitter-midnight",
   "version": "0.1.0",
-  "description": "Erde grammar for tree-sitter",
+  "description": "Midnight grammar for tree-sitter",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/taybart/tree-sitter-erde.git"
+    "url": "git+https://github.com/taybart/tree-sitter-midnight.git"
   },
   "license": "MIT",
   "author": {
@@ -18,7 +18,7 @@
     "incremental",
     "parsing",
     "tree-sitter",
-    "erde"
+    "midnight"
   ],
   "files": [
     "grammar.js",

@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 // A `bun build --compile` executable has no package directory for node-gyp-build to search, so
 // require the prebuild directly. Its path has to stay static for Bun to embed the addon.
 const binding = typeof process.versions.bun === "string" && Bun.isStandaloneExecutable
-  ? require(`../../prebuilds/${process.platform}-${process.arch}/tree-sitter-erde.node`)
+  ? require(`../../prebuilds/${process.platform}-${process.arch}/tree-sitter-midnight.node`)
   : (await import("node-gyp-build")).default(root);
 
 try {

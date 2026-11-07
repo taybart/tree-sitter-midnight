@@ -57,15 +57,15 @@ static inline uint8_t consume_and_count_char(char c, TSLexer *lexer) {
   return count;
 }
 
-void *tree_sitter_erde_external_scanner_create() {
+void *tree_sitter_midnight_external_scanner_create() {
   return ts_calloc(1, sizeof(Scanner));
 }
 
-void tree_sitter_erde_external_scanner_destroy(void *payload) {
+void tree_sitter_midnight_external_scanner_destroy(void *payload) {
   ts_free(payload);
 }
 
-unsigned tree_sitter_erde_external_scanner_serialize(void *payload, char *buffer) {
+unsigned tree_sitter_midnight_external_scanner_serialize(void *payload, char *buffer) {
   Scanner *scanner = (Scanner *)payload;
   buffer[0] = (char)scanner->block_comment_level;
   buffer[1] = (char)scanner->block_string_depth;
@@ -73,7 +73,7 @@ unsigned tree_sitter_erde_external_scanner_serialize(void *payload, char *buffer
   return 2 + scanner->block_string_depth;
 }
 
-void tree_sitter_erde_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
+void tree_sitter_midnight_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
   Scanner *scanner = (Scanner *)payload;
   memset(scanner, 0, sizeof(Scanner));
 
@@ -192,7 +192,7 @@ static bool scan_quote_string_content(TSLexer *lexer, char quote) {
 static inline bool is_identifier_char(int32_t c) { return iswalnum(c) || c == '_'; }
 
 // scan_match scans `match` as a keyword, unless it is followed by something
-// that continues a name (same as go-erde's isMatchStatement):
+// that continues a name (same as midnight's isMatchStatement):
 //
 //   match = 1, match, y = ..., match.x, match[i], match:f(), match += 1, match(x)
 //
@@ -262,7 +262,7 @@ static bool scan_match(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
-bool tree_sitter_erde_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+bool tree_sitter_midnight_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   Scanner *scanner = (Scanner *)payload;
   bool in_error_recovery = valid_symbols[ERROR_SENTINEL];
 

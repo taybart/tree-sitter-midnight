@@ -1,24 +1,24 @@
-# tree-sitter-erde
+# tree-sitter-midnight
 
-[Erde](https://erde-lang.github.io/) grammar for tree-sitter.
+[Midnight](https://github.com/taybart/midnight) grammar for tree-sitter.
 
 ## Neovim
 
 Build the parser and put it, along with the queries, on your `runtimepath`:
 
 ```sh
-tree-sitter build -o ~/.config/nvim/parser/erde.so
-mkdir -p ~/.config/nvim/queries/erde
-cp queries/*.scm ~/.config/nvim/queries/erde/
+tree-sitter build -o ~/.config/nvim/parser/midnight.so
+mkdir -p ~/.config/nvim/queries/midnight
+cp queries/*.scm ~/.config/nvim/queries/midnight/
 ```
 
 Then register the filetype and start highlighting:
 
 ```lua
-vim.filetype.add({ extension = { erde = 'erde' } })
+vim.filetype.add({ extension = { midnight = 'midnight' } })
 
 vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'erde',
+  pattern = 'midnight',
   callback = function() vim.treesitter.start() end,
 })
 ```
@@ -28,7 +28,7 @@ vim.api.nvim_create_autocmd('FileType', {
 ```sh
 tree-sitter generate   # regenerate src/parser.c after editing grammar.js
 tree-sitter test       # corpus, highlight, and tag tests
-tree-sitter parse path/to/file.erde
+tree-sitter parse path/to/file.mn
 ```
 
 Most of the syntax is plain `grammar.js`. The [external scanner](/src/scanner.c)
@@ -38,7 +38,7 @@ handles the context-sensitive parts:
   block strings and nested block strings inside interpolations.
 - Quoted string contents, so that `--` inside a string is never a comment.
 - `(` on the same line as the preceding expression, which is a function call.
-  On a new line, `(` starts a new statement (this mirrors the Erde compiler).
+  On a new line, `(` starts a new statement (this mirrors the Midnight compiler).
 - `{` directly after `->` / `=>`, which is always a block (never a table).
 
 ## Acknowledgement

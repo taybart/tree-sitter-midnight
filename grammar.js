@@ -1,5 +1,5 @@
 /**
- * @file Erde grammar for tree-sitter
+ * @file Midnight grammar for tree-sitter
  * @author Munif Tanjim (original Lua grammar)
  * @license MIT
  */
@@ -7,7 +7,7 @@
 /// <reference types="tree-sitter-cli/dsl" />
 // @ts-check
 
-// Mirrors the operator precedence of the Erde compiler (erde/constants.erde).
+// Mirrors the operator precedence of the Erde reference compiler (erde/constants.erde).
 const PREC = {
   ARROW: 0, // -> =>
   OR: 1, // ||
@@ -63,7 +63,7 @@ const escape_sequence = (standard_escape_chars) =>
   );
 
 export default grammar({
-  name: 'erde',
+  name: 'midnight',
 
   extras: ($) => [$.comment, /\s/],
 
@@ -79,12 +79,12 @@ export default grammar({
     $._single_quote_string_content,
     $._double_quote_string_content,
 
-    // A '(' on the same line as the preceding token. Erde only treats '(' as a
+    // A '(' on the same line as the preceding token. Midnight only treats '(' as a
     // function call when it is on the same line as the callee, otherwise it
     // starts a new statement.
     $._call_open,
 
-    // A '{' directly following '->' or '=>'. Erde always parses this as a
+    // A '{' directly following '->' or '=>'. Midnight always parses this as a
     // block (never a table constructor).
     $._arrow_block_open,
 
@@ -214,7 +214,7 @@ export default grammar({
       ),
     else_statement: ($) => seq('else', field('body', $.block)),
 
-    // Experimental (go-erde w/ `-X match`), always parsed here since the
+    // Experimental (midnight w/ `-X match`), always parsed here since the
     // compiler is what enforces the experiment.
     // 'match' exp '{' {pattern {'|' pattern} ['if' exp] '=>' block [',']} '}'
     match_statement: ($) =>
@@ -615,7 +615,7 @@ export default grammar({
         )
       ),
 
-    // Experimental (go-erde w/ `-X markup`), always parsed here since the
+    // Experimental (midnight w/ `-X markup`), always parsed here since the
     // compiler is what enforces the experiment. An element can only start
     // where an expression can, so `a < b` is still a comparison.
     //

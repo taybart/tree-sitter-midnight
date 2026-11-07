@@ -1,15 +1,15 @@
-package tree_sitter_erde_test
+package tree_sitter_midnight_test
 
 import (
 	"testing"
 
 	tree_sitter "github.com/tree-sitter/go-tree-sitter"
-	tree_sitter_erde "github.com/taybart/tree-sitter-erde/bindings/go"
+	tree_sitter_midnight "github.com/taybart/tree-sitter-midnight/bindings/go"
 )
 
 func TestCanLoadGrammar(t *testing.T) {
-	language := tree_sitter.NewLanguage(tree_sitter_erde.Language())
+	language := tree_sitter.NewLanguage(tree_sitter_midnight.Language())
 	if language == nil {
-		t.Errorf("Error loading Erde grammar")
+		t.Errorf("Error loading Midnight grammar")
 	}
 }

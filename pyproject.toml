@@ -10,16 +10,16 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
   "Typing :: Typed",
 ]
-description = "Erde grammar for tree-sitter"
-keywords = [ "incremental", "parsing", "tree-sitter", "erde" ]
+description = "Midnight grammar for tree-sitter"
+keywords = [ "incremental", "parsing", "tree-sitter", "midnight" ]
 license.text = "MIT"
-name = "tree-sitter-erde"
+name = "tree-sitter-midnight"
 readme = "README.md"
 requires-python = ">=3.10"
 version = "0.1.0"
 
 [project.urls]
-Homepage = "https://github.com/taybart/tree-sitter-erde"
+Homepage = "https://github.com/taybart/tree-sitter-midnight"
 
 [project.optional-dependencies]
 core = [ "tree-sitter~=0.24" ]

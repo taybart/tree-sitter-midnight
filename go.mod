@@ -1,4 +1,4 @@
-module github.com/taybart/tree-sitter-erde
+module github.com/taybart/tree-sitter-midnight
 
 go 1.22
 

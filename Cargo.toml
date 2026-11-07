@@ -2,13 +2,13 @@
 authors = [ "Taylor Bartlett <taylor.bartlett@journey.ai>" ]
 autoexamples = false
 categories = [ "parser-implementations", "parsing", "text-editors" ]
-description = "Erde grammar for tree-sitter"
+description = "Midnight grammar for tree-sitter"
 edition = "2024"
-keywords = [ "incremental", "parsing", "tree-sitter", "erde" ]
+keywords = [ "incremental", "parsing", "tree-sitter", "midnight" ]
 license = "MIT"
-name = "tree-sitter-erde"
+name = "tree-sitter-midnight"
 readme = "README.md"
-repository = "https://github.com/taybart/tree-sitter-erde"
+repository = "https://github.com/taybart/tree-sitter-midnight"
 version = "0.1.0"
 
 build = "bindings/rust/build.rs"

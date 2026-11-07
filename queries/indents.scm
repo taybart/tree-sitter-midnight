@@ -19,7 +19,7 @@
 
 (string) @indent.auto
 
-; Markup (go-erde `-X markup`)
+; Markup (midnight `-X markup`)
 [
   (markup_element)
   (markup_opening_element)

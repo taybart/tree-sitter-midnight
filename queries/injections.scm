@@ -1,7 +1,7 @@
 ((comment) @injection.content
   (#set! injection.language "comment"))
 
-; Markup <style> / <script> content (go-erde `-X markup`)
+; Markup <style> / <script> content (midnight `-X markup`)
 (markup_element
   open_tag: (markup_opening_element
     name: (markup_tag_name) @_tag)
