@@ -214,8 +214,7 @@ export default grammar({
       ),
     else_statement: ($) => seq('else', field('body', $.block)),
 
-    // Experimental (midnight w/ `-X match`), always parsed here since the
-    // compiler is what enforces the experiment.
+    // Match statements. `match` is a contextual keyword.
     // 'match' exp '{' {pattern {'|' pattern} ['if' exp] '=>' block [',']} '}'
     match_statement: ($) =>
       seq(
@@ -615,8 +614,7 @@ export default grammar({
         )
       ),
 
-    // Experimental (midnight w/ `-X markup`), always parsed here since the
-    // compiler is what enforces the experiment. An element can only start
+    // Markup elements (JSX style). An element can only start
     // where an expression can, so `a < b` is still a comparison.
     //
     //   <div class="x" id={id}>text {expr}</div>

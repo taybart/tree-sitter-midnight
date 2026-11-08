@@ -202,7 +202,7 @@
 
 (escape_sequence) @string.escape
 
-; Markup (midnight `-X markup`)
+; Markup
 (markup_tag_name) @tag
 
 ; HTML elements (lowercase, or w/ `-` / `:`); other tags are components
