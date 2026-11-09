@@ -74,6 +74,8 @@
     "}"
   ] @punctuation.special)
 
+(format_spec) @string.special
+
 ; Variables
 (identifier) @variable
 

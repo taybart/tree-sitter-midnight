@@ -503,8 +503,12 @@ export default grammar({
         )
       ),
 
-    // '{' exp '}'
-    interpolation: ($) => seq('{', $.expression, '}'),
+    // '{' exp [':%spec'] '}'
+    interpolation: ($) =>
+      seq('{', $.expression, optional(field('format', $.format_spec)), '}'),
+    // `{x:%.2f}`: one string.format directive (same as midnight's
+    // midnightFormatSpecPattern). Longer than a method call's `:`, so it wins.
+    format_spec: (_) => token(/:%[-+ #0]*[0-9]*(\.[0-9]*)?[cdioxXeEfgGqs]/),
 
     // Double quote strings additionally allow escaping interpolation braces.
     escape_sequence: (_) => escape_sequence(/[\nabfnrtv\\'"{}]/),

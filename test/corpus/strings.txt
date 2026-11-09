@@ -88,3 +88,35 @@ return "-- not a comment", "--[[ also not ]]"
         (string_content))
       (string
         (string_content)))))
+
+================================================================================
+Interpolation format
+================================================================================
+
+local s = "{p * 100:%.1f}% {t:get()} {n:%05x}"
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (string
+        (interpolation
+          (binary_expression
+            (identifier)
+            (number))
+          (format_spec))
+        (string_content)
+        (interpolation
+          (function_call
+            (method_index_expression
+              (identifier)
+              (identifier))
+            (arguments)))
+        (string_content)
+        (interpolation
+          (identifier)
+          (format_spec))))))

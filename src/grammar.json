@@ -2137,10 +2137,33 @@
           "name": "expression"
         },
         {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "format",
+              "content": {
+                "type": "SYMBOL",
+                "name": "format_spec"
+              }
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
           "type": "STRING",
           "value": "}"
         }
       ]
+    },
+    "format_spec": {
+      "type": "TOKEN",
+      "content": {
+        "type": "PATTERN",
+        "value": ":%[-+ #0]*[0-9]*(\\.[0-9]*)?[cdioxXeEfgGqs]"
+      }
     },
     "escape_sequence": {
       "type": "IMMEDIATE_TOKEN",
