@@ -93,6 +93,11 @@ export default grammar({
     // continue a name (ex. not `match = 1`, `match.x`, or a call `match(x)`).
     $._match_keyword,
 
+    // `match` where an expression is expected (a match expression), which is
+    // stricter (same as midnight's isMatchExpression): the subject starts on
+    // the same line, so `match - 1` and `local y = match` stay names.
+    $._match_expression_keyword,
+
     // The content of a <script> / <style>, up to `</script` / `</style` (same
     // as midnight's markupRawText).
     $._markup_script_raw_text,
@@ -401,7 +406,54 @@ export default grammar({
         $.table_constructor,
         $.binary_expression,
         $.unary_expression,
-        $.markup_element
+        $.markup_element,
+        $.if_expression,
+        $.match_expression
+      ),
+
+    // if / match expressions: where an expression is expected, `if` / `match`
+    // have the value of the branch taken. Each branch is one expression (in
+    // braces), and the fallback (`else` / `_ =>`) is required.
+    //   if c { a } elseif d { b } else { x }
+    if_expression: ($) =>
+      seq(
+        'if',
+        field('condition', $.expression),
+        '{',
+        field('consequence', $.expression),
+        '}',
+        repeat(field('alternative', $.elseif_expression)),
+        field('alternative', $.else_expression)
+      ),
+    elseif_expression: ($) =>
+      seq(
+        'elseif',
+        field('condition', $.expression),
+        '{',
+        field('consequence', $.expression),
+        '}'
+      ),
+    else_expression: ($) => seq('else', '{', field('value', $.expression), '}'),
+
+    //   match s { a | b => { x } _ if g => { y } _ => { z } }
+    match_expression: ($) =>
+      seq(
+        alias($._match_expression_keyword, 'match'),
+        field('value', $.expression),
+        '{',
+        repeat(field('arm', $.match_expression_arm)),
+        '}'
+      ),
+    match_expression_arm: ($) =>
+      seq(
+        list_seq(field('pattern', $._match_pattern), '|'),
+        optional(seq('if', field('guard', $.expression))),
+        '=>',
+        // (the scanner lexes a `{` after `=>` as an arrow block's)
+        choice('{', alias($._arrow_block_open, '{')),
+        field('value', $.expression),
+        '}',
+        optional(',')
       ),
 
     nil: (_) => 'nil',

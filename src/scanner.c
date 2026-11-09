@@ -21,6 +21,7 @@ enum TokenType {
   ARROW_BLOCK_OPEN,
 
   MATCH_KEYWORD,
+  MATCH_EXPRESSION_KEYWORD,
 
   MARKUP_SCRIPT_RAW_TEXT,
   MARKUP_STYLE_RAW_TEXT,
@@ -265,6 +266,63 @@ static bool scan_match(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+// scan_match_expression scans `match` as the keyword of a match expression
+// (where an expression is expected). Same as midnight's isMatchExpression
+// (w/o looking for the arm): the subject starts on the same line, w/ a name,
+// number, string, or `(...)` followed by `{`. So `match - 1`, `match + x`, and
+// `local y = match` (the next statement on the next line) stay names.
+static bool scan_match_expression(TSLexer *lexer) {
+  for (const char *c = "match"; *c; c++) {
+    if (!consume_char(*c, lexer)) {
+      return false;
+    }
+  }
+  if (is_identifier_char(lexer->lookahead)) {
+    return false;
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = MATCH_EXPRESSION_KEYWORD;
+
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
+    consume(lexer);
+  }
+
+  int32_t c = lexer->lookahead;
+  if (iswalpha(c) || c == '_' || iswdigit(c) || c == '\'' || c == '"') {
+    return true;
+  }
+  if (c != '(') {
+    return false;
+  }
+  // `match(x)` is a call, `match (x) {` is a match expression.
+  unsigned depth = 0;
+  do {
+    if (lexer->eof(lexer)) {
+      return false;
+    }
+    if (lexer->lookahead == '\'' || lexer->lookahead == '"') {
+      int32_t quote = lexer->lookahead;
+      consume(lexer);
+      while (!lexer->eof(lexer) && lexer->lookahead != quote && lexer->lookahead != '\n') {
+        if (lexer->lookahead == '\\') {
+          consume(lexer);
+        }
+        consume(lexer);
+      }
+    } else if (lexer->lookahead == '(') {
+      depth++;
+    } else if (lexer->lookahead == ')') {
+      depth--;
+    }
+    consume(lexer);
+  } while (depth > 0);
+
+  while (iswspace(lexer->lookahead)) {
+    consume(lexer);
+  }
+  return lexer->lookahead == '{';
+}
+
 // scan_raw_text scans the content of a <script> / <style> up to (not including)
 // `</` + tag, like midnight's markupRawText. Empty content is no token.
 static bool scan_raw_text(TSLexer *lexer, const char *tag) {
@@ -376,6 +434,10 @@ bool tree_sitter_midnight_external_scanner_scan(void *payload, TSLexer *lexer, c
 
   if (!in_error_recovery && valid_symbols[MATCH_KEYWORD] && lexer->lookahead == 'm') {
     return scan_match(lexer);
+  }
+
+  if (!in_error_recovery && valid_symbols[MATCH_EXPRESSION_KEYWORD] && lexer->lookahead == 'm') {
+    return scan_match_expression(lexer);
   }
 
   if (!in_error_recovery && valid_symbols[BLOCK_STRING_START]) {

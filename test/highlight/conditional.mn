@@ -1,0 +1,9 @@
+local label = if admin { title } elseif guest { 'g' } else { 'member' }
+--            ^ keyword.conditional
+--                               ^ keyword.conditional
+--                                                    ^ keyword.conditional
+local icon = match kind { 'dir' => { 'D' } _ => { 'F' } }
+--           ^ keyword.conditional
+--                              ^ operator
+local y = match - 1
+--        ^ variable

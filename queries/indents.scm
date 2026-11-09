@@ -1,6 +1,8 @@
 [
   (block)
   (match_statement)
+  (if_expression)
+  (match_expression)
   (table_constructor)
   (arguments)
   (parameters)

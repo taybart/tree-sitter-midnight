@@ -1,0 +1,230 @@
+================================================================================
+If expressions
+================================================================================
+
+local label = if admin { title } elseif guest { 'guest' } else { 'member' }
+local f = (n) -> if n == 1 { 'one' } else { "{n}" }
+print(if a { 1 } else { 2 })
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (if_expression
+        (identifier)
+        (identifier)
+        (elseif_expression
+          (identifier)
+          (string
+            (string_content)))
+        (else_expression
+          (string
+            (string_content))))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (parameters
+          (identifier))
+        (if_expression
+          (binary_expression
+            (identifier)
+            (number))
+          (string
+            (string_content))
+          (else_expression
+            (string
+              (interpolation
+                (identifier))))))))
+  (function_call
+    (identifier)
+    (arguments
+      (if_expression
+        (identifier)
+        (number)
+        (else_expression
+          (number))))))
+
+================================================================================
+Match expressions
+================================================================================
+
+local icon = match kind { "dir" => { "D" } "a" | "b" => { "L" }, _ if n > 1 => { "B" } _ => { "F" } }
+local w = match (-x) { 2 => { 'two' } _ => { '?' } }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (match_expression
+        (identifier)
+        (match_expression_arm
+          (string
+            (string_content))
+          (string
+            (string_content)))
+        (match_expression_arm
+          (string
+            (string_content))
+          (string
+            (string_content))
+          (string
+            (string_content)))
+        (match_expression_arm
+          (identifier)
+          (binary_expression
+            (identifier)
+            (number))
+          (string
+            (string_content)))
+        (match_expression_arm
+          (identifier)
+          (string
+            (string_content))))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (match_expression
+        (parenthesized_expression
+          (unary_expression
+            (identifier)))
+        (match_expression_arm
+          (number)
+          (string
+            (string_content)))
+        (match_expression_arm
+          (identifier)
+          (string
+            (string_content)))))))
+
+================================================================================
+If / match expressions in markup
+================================================================================
+
+local el = <span>{if c.current { c.name } else { <a href="/{c.path}">{c.name}</a> }}</span>
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (markup_element
+        (markup_opening_element
+          (markup_tag_name))
+        (markup_expression
+          (if_expression
+            (dot_index_expression
+              (identifier)
+              (identifier))
+            (dot_index_expression
+              (identifier)
+              (identifier))
+            (else_expression
+              (markup_element
+                (markup_opening_element
+                  (markup_tag_name)
+                  (markup_attribute
+                    (markup_attribute_name)
+                    (string
+                      (string_content)
+                      (interpolation
+                        (dot_index_expression
+                          (identifier)
+                          (identifier))))))
+                (markup_expression
+                  (dot_index_expression
+                    (identifier)
+                    (identifier)))
+                (markup_closing_element
+                  (markup_tag_name))))))
+        (markup_closing_element
+          (markup_tag_name))))))
+
+================================================================================
+Match is still a name where it can be one
+================================================================================
+
+local y = match - 1
+local z = match
+print(z, match(x), s:match('a'))
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (binary_expression
+        (identifier)
+        (number))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (identifier)))
+  (function_call
+    (identifier)
+    (arguments
+      (identifier)
+      (function_call
+        (identifier)
+        (arguments
+          (identifier)))
+      (function_call
+        (method_index_expression
+          (identifier)
+          (identifier))
+        (arguments
+          (string
+            (string_content)))))))
+
+================================================================================
+If / match statements are unchanged
+================================================================================
+
+if a { b() } else { c() }
+match k { 1 => { d() } _ => {} }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (if_statement
+    (identifier)
+    (block
+      (function_call
+        (identifier)
+        (arguments)))
+    (else_statement
+      (block
+        (function_call
+          (identifier)
+          (arguments)))))
+  (match_statement
+    (identifier)
+    (match_arm
+      (number)
+      (block
+        (function_call
+          (identifier)
+          (arguments))))
+    (match_arm
+      (identifier)
+      (block))))
