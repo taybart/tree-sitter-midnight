@@ -57,6 +57,7 @@ Match expressions
 
 local icon = match kind { "dir" => { "D" } "a" | "b" => { "L" }, _ if n > 1 => { "B" } _ => { "F" } }
 local w = match (-x) { 2 => { 'two' } _ => { '?' } }
+local n = match #rows { 0 => { 'empty' } _ => { 'some' } }
 
 --------------------------------------------------------------------------------
 
@@ -100,6 +101,22 @@ local w = match (-x) { 2 => { 'two' } _ => { '?' } }
         (parenthesized_expression
           (unary_expression
             (identifier)))
+        (match_expression_arm
+          (number)
+          (string
+            (string_content)))
+        (match_expression_arm
+          (identifier)
+          (string
+            (string_content))))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (match_expression
+        (unary_expression
+          (identifier))
         (match_expression_arm
           (number)
           (string
@@ -161,6 +178,8 @@ Match is still a name where it can be one
 
 local y = match - 1
 local z = match
+local v = match == 1
+local u = { match, 2 }
 print(z, match(x), s:match('a'))
 
 --------------------------------------------------------------------------------
@@ -180,6 +199,24 @@ print(z, match(x), s:match('a'))
       (identifier))
     (expression_list
       (identifier)))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (binary_expression
+        (identifier)
+        (number))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (table_constructor
+        (field
+          (identifier))
+        (field
+          (number)))))
   (function_call
     (identifier)
     (arguments

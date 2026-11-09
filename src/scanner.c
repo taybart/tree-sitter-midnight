@@ -266,11 +266,69 @@ static bool scan_match(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+// skip_quoted skips a quoted string (lookahead is its quote), on one line.
+static void skip_quoted(TSLexer *lexer) {
+  int32_t quote = lexer->lookahead;
+  consume(lexer);
+  while (!lexer->eof(lexer) && lexer->lookahead != quote && lexer->lookahead != '\n') {
+    if (lexer->lookahead == '\\') {
+      consume(lexer);
+    }
+    consume(lexer);
+  }
+  if (lexer->lookahead == quote) {
+    consume(lexer);
+  }
+}
+
+// scan_to_arm scans past a match subject to its `{`, and then to the first
+// arm's `=>` (before any `{` / `}`, outside of brackets and strings), like
+// midnight's isMatchExpression / isMatchArm.
+static bool scan_to_arm(TSLexer *lexer) {
+  bool in_arms = false;
+  unsigned depth = 0;
+  while (!lexer->eof(lexer)) {
+    int32_t c = lexer->lookahead;
+    if (c == '\'' || c == '"') {
+      skip_quoted(lexer);
+      continue;
+    }
+    if (c == '(' || c == '[') {
+      depth++;
+    } else if ((c == ')' || c == ']') && depth > 0) {
+      depth--;
+    } else if (depth == 0) {
+      if (c == '{') {
+        if (in_arms) {
+          return false; // an arm's body, before any `=>`
+        }
+        in_arms = true;
+      } else if (c == '}' || c == ';') {
+        return false;
+      } else if (c == '=') {
+        consume(lexer);
+        if (lexer->lookahead == '>') {
+          return in_arms;
+        }
+        if (!in_arms && lexer->lookahead != '=') {
+          return false; // `match = 1`
+        }
+        continue;
+      } else if (c == ',' && !in_arms) {
+        return false;
+      }
+    }
+    consume(lexer);
+  }
+  return false;
+}
+
 // scan_match_expression scans `match` as the keyword of a match expression
-// (where an expression is expected). Same as midnight's isMatchExpression
-// (w/o looking for the arm): the subject starts on the same line, w/ a name,
-// number, string, or `(...)` followed by `{`. So `match - 1`, `match + x`, and
-// `local y = match` (the next statement on the next line) stay names.
+// (where an expression is expected), like midnight's isMatchExpression: the
+// subject starts on the same line (w/ a name, number, string, `(`, or a
+// unary operator), and is followed by `{` and an arm (`... =>`). So
+// `match - 1`, `match + x`, and `local y = match` (the next statement on the
+// next line) stay names, and `match #rows { 0 => ... }` is a match.
 static bool scan_match_expression(TSLexer *lexer) {
   for (const char *c = "match"; *c; c++) {
     if (!consume_char(*c, lexer)) {
@@ -288,39 +346,11 @@ static bool scan_match_expression(TSLexer *lexer) {
   }
 
   int32_t c = lexer->lookahead;
-  if (iswalpha(c) || c == '_' || iswdigit(c) || c == '\'' || c == '"') {
-    return true;
-  }
-  if (c != '(') {
+  if (!(iswalpha(c) || c == '_' || iswdigit(c) || c == '\'' || c == '"' || c == '(' ||
+        c == '-' || c == '!' || c == '#' || c == '~')) {
     return false;
   }
-  // `match(x)` is a call, `match (x) {` is a match expression.
-  unsigned depth = 0;
-  do {
-    if (lexer->eof(lexer)) {
-      return false;
-    }
-    if (lexer->lookahead == '\'' || lexer->lookahead == '"') {
-      int32_t quote = lexer->lookahead;
-      consume(lexer);
-      while (!lexer->eof(lexer) && lexer->lookahead != quote && lexer->lookahead != '\n') {
-        if (lexer->lookahead == '\\') {
-          consume(lexer);
-        }
-        consume(lexer);
-      }
-    } else if (lexer->lookahead == '(') {
-      depth++;
-    } else if (lexer->lookahead == ')') {
-      depth--;
-    }
-    consume(lexer);
-  } while (depth > 0);
-
-  while (iswspace(lexer->lookahead)) {
-    consume(lexer);
-  }
-  return lexer->lookahead == '{';
+  return scan_to_arm(lexer);
 }
 
 // scan_raw_text scans the content of a <script> / <style> up to (not including)
