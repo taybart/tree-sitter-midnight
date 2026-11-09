@@ -3277,7 +3277,7 @@
                 "type": "ALIAS",
                 "content": {
                   "type": "SYMBOL",
-                  "name": "_markup_raw_text_opening_element"
+                  "name": "_markup_script_opening_element"
                 },
                 "named": true,
                 "value": "markup_opening_element"
@@ -3287,8 +3287,56 @@
               "type": "CHOICE",
               "members": [
                 {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_markup_script_raw_text"
+                  },
+                  "named": true,
+                  "value": "markup_raw_text"
+                },
+                {
+                  "type": "BLANK"
+                }
+              ]
+            },
+            {
+              "type": "FIELD",
+              "name": "close_tag",
+              "content": {
+                "type": "SYMBOL",
+                "name": "markup_closing_element"
+              }
+            }
+          ]
+        },
+        {
+          "type": "SEQ",
+          "members": [
+            {
+              "type": "FIELD",
+              "name": "open_tag",
+              "content": {
+                "type": "ALIAS",
+                "content": {
                   "type": "SYMBOL",
-                  "name": "markup_raw_text"
+                  "name": "_markup_style_opening_element"
+                },
+                "named": true,
+                "value": "markup_opening_element"
+              }
+            },
+            {
+              "type": "CHOICE",
+              "members": [
+                {
+                  "type": "ALIAS",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "_markup_style_raw_text"
+                  },
+                  "named": true,
+                  "value": "markup_raw_text"
                 },
                 {
                   "type": "BLANK"
@@ -3311,7 +3359,7 @@
         }
       ]
     },
-    "_markup_raw_text_opening_element": {
+    "_markup_script_opening_element": {
       "type": "SEQ",
       "members": [
         {
@@ -3324,17 +3372,8 @@
           "content": {
             "type": "ALIAS",
             "content": {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "style"
-                },
-                {
-                  "type": "STRING",
-                  "value": "script"
-                }
-              ]
+              "type": "STRING",
+              "value": "script"
             },
             "named": true,
             "value": "markup_tag_name"
@@ -3357,16 +3396,42 @@
         }
       ]
     },
-    "markup_raw_text": {
-      "type": "TOKEN",
-      "content": {
-        "type": "PREC",
-        "value": 1,
-        "content": {
-          "type": "PATTERN",
-          "value": "([^<]|<[^\\/])+"
+    "_markup_style_opening_element": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "<"
+        },
+        {
+          "type": "FIELD",
+          "name": "name",
+          "content": {
+            "type": "ALIAS",
+            "content": {
+              "type": "STRING",
+              "value": "style"
+            },
+            "named": true,
+            "value": "markup_tag_name"
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "FIELD",
+            "name": "attribute",
+            "content": {
+              "type": "SYMBOL",
+              "name": "_markup_attribute"
+            }
+          }
+        },
+        {
+          "type": "STRING",
+          "value": ">"
         }
-      }
+      ]
     },
     "markup_opening_element": {
       "type": "SEQ",
@@ -3778,6 +3843,14 @@
     {
       "type": "SYMBOL",
       "name": "_match_keyword"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_markup_script_raw_text"
+    },
+    {
+      "type": "SYMBOL",
+      "name": "_markup_style_raw_text"
     },
     {
       "type": "SYMBOL",

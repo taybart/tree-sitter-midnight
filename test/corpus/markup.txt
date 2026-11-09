@@ -160,3 +160,34 @@ local style = <html><style>
             (markup_tag_name)))
         (markup_closing_element
           (markup_tag_name))))))
+
+================================================================================
+Markup raw text ends at its own closing tag
+================================================================================
+
+local s = <div><script>x.innerHTML = '<b>' + y + '</b></style>'</script><style></style></div>
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (markup_element
+        (markup_opening_element
+          (markup_tag_name))
+        (markup_element
+          (markup_opening_element
+            (markup_tag_name))
+          (markup_raw_text)
+          (markup_closing_element
+            (markup_tag_name)))
+        (markup_element
+          (markup_opening_element
+            (markup_tag_name))
+          (markup_closing_element
+            (markup_tag_name)))
+        (markup_closing_element
+          (markup_tag_name))))))

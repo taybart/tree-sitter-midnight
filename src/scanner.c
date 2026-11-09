@@ -22,6 +22,9 @@ enum TokenType {
 
   MATCH_KEYWORD,
 
+  MARKUP_SCRIPT_RAW_TEXT,
+  MARKUP_STYLE_RAW_TEXT,
+
   ERROR_SENTINEL,
 };
 
@@ -262,11 +265,51 @@ static bool scan_match(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+// scan_raw_text scans the content of a <script> / <style> up to (not including)
+// `</` + tag, like midnight's markupRawText. Empty content is no token.
+static bool scan_raw_text(TSLexer *lexer, const char *tag) {
+  bool has_content = false;
+
+  while (!lexer->eof(lexer)) {
+    if (lexer->lookahead == '<') {
+      lexer->mark_end(lexer);
+      consume(lexer);
+      if (consume_char('/', lexer)) {
+        const char *c = tag;
+        while (*c && consume_char(*c, lexer)) {
+          c++;
+        }
+        if (!*c) {
+          return has_content;
+        }
+      }
+      has_content = true;
+      continue;
+    }
+    consume(lexer);
+    has_content = true;
+  }
+
+  // unterminated, take the rest
+  lexer->mark_end(lexer);
+  return has_content;
+}
+
 bool tree_sitter_midnight_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
   Scanner *scanner = (Scanner *)payload;
   bool in_error_recovery = valid_symbols[ERROR_SENTINEL];
 
   if (!in_error_recovery) {
+    if (valid_symbols[MARKUP_SCRIPT_RAW_TEXT] || valid_symbols[MARKUP_STYLE_RAW_TEXT]) {
+      bool script = valid_symbols[MARKUP_SCRIPT_RAW_TEXT];
+      lexer->result_symbol = script ? MARKUP_SCRIPT_RAW_TEXT : MARKUP_STYLE_RAW_TEXT;
+      if (scan_raw_text(lexer, script ? "script" : "style")) {
+        return true;
+      }
+      // empty: fall through, the closing tag is lexed by the grammar
+      return false;
+    }
+
     // Inside strings: never skip whitespace or look for comments.
     if (valid_symbols[BLOCK_STRING_END] || valid_symbols[BLOCK_STRING_CONTENT]) {
       if (valid_symbols[BLOCK_STRING_END] && scan_block_end(lexer, block_string_level(scanner))) {

@@ -93,6 +93,11 @@ export default grammar({
     // continue a name (ex. not `match = 1`, `match.x`, or a call `match(x)`).
     $._match_keyword,
 
+    // The content of a <script> / <style>, up to `</script` / `</style` (same
+    // as midnight's markupRawText).
+    $._markup_script_raw_text,
+    $._markup_style_raw_text,
+
     // Never valid in the grammar. When the scanner sees this as valid, the
     // parser is in error recovery.
     $._error_sentinel,
@@ -627,26 +632,40 @@ export default grammar({
           repeat($._markup_child),
           field('close_tag', $.markup_closing_element)
         ),
-        // <style> / <script> content is raw text (like HTML)
+        // <style> / <script> content is raw text (like HTML), up to its own
+        // closing tag, so js like `'<b>' + x + '</b>'` stays in the script
         seq(
           field(
             'open_tag',
-            alias($._markup_raw_text_opening_element, $.markup_opening_element)
+            alias($._markup_script_opening_element, $.markup_opening_element)
           ),
-          optional($.markup_raw_text),
+          optional(alias($._markup_script_raw_text, $.markup_raw_text)),
+          field('close_tag', $.markup_closing_element)
+        ),
+        seq(
+          field(
+            'open_tag',
+            alias($._markup_style_opening_element, $.markup_opening_element)
+          ),
+          optional(alias($._markup_style_raw_text, $.markup_raw_text)),
           field('close_tag', $.markup_closing_element)
         ),
         $.markup_self_closing_element
       ),
-    _markup_raw_text_opening_element: ($) =>
+    _markup_script_opening_element: ($) =>
       seq(
         '<',
-        field('name', alias(choice('style', 'script'), $.markup_tag_name)),
+        field('name', alias('script', $.markup_tag_name)),
         repeat(field('attribute', $._markup_attribute)),
         '>'
       ),
-    // up to the closing tag (anything but `</`)
-    markup_raw_text: (_) => token(prec(1, /([^<]|<[^\/])+/)),
+    _markup_style_opening_element: ($) =>
+      seq(
+        '<',
+        field('name', alias('style', $.markup_tag_name)),
+        repeat(field('attribute', $._markup_attribute)),
+        '>'
+      ),
     markup_opening_element: ($) =>
       seq(
         '<',
