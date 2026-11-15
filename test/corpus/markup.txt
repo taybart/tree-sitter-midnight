@@ -191,3 +191,39 @@ local s = <div><script>x.innerHTML = '<b>' + y + '</b></style>'</script><style><
             (markup_tag_name)))
         (markup_closing_element
           (markup_tag_name))))))
+
+================================================================================
+Markup self-closing <script> / <style>
+================================================================================
+
+return <html><head><script src="x.js" /><style href="y.css" /></head></html>
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (return_statement
+    (expression_list
+      (markup_element
+        (markup_opening_element
+          (markup_tag_name))
+        (markup_element
+          (markup_opening_element
+            (markup_tag_name))
+          (markup_element
+            (markup_self_closing_element
+              (markup_tag_name)
+              (markup_attribute
+                (markup_attribute_name)
+                (string
+                  (string_content)))))
+          (markup_element
+            (markup_self_closing_element
+              (markup_tag_name)
+              (markup_attribute
+                (markup_attribute_name)
+                (string
+                  (string_content)))))
+          (markup_closing_element
+            (markup_tag_name)))
+        (markup_closing_element
+          (markup_tag_name))))))

@@ -736,11 +736,28 @@ export default grammar({
     markup_closing_element: ($) =>
       seq('</', optional(field('name', $.markup_tag_name)), '>'),
     markup_self_closing_element: ($) =>
-      seq(
-        '<',
-        field('name', $.markup_tag_name),
-        repeat(field('attribute', $._markup_attribute)),
-        '/>'
+      choice(
+        // `script` / `style` are lexed as literal tokens (see the opening
+        // element rules below), so they need their own self-closing rules:
+        // the generic `markup_tag_name` regex can't match them here.
+        seq(
+          '<',
+          field('name', alias('script', $.markup_tag_name)),
+          repeat(field('attribute', $._markup_attribute)),
+          '/>'
+        ),
+        seq(
+          '<',
+          field('name', alias('style', $.markup_tag_name)),
+          repeat(field('attribute', $._markup_attribute)),
+          '/>'
+        ),
+        seq(
+          '<',
+          field('name', $.markup_tag_name),
+          repeat(field('attribute', $._markup_attribute)),
+          '/>'
+        )
       ),
 
     // Lowercase (or w/ `-` / `:`) names are HTML elements, others are
