@@ -95,6 +95,8 @@
 ((identifier) @module.builtin
   (#any-of? @module.builtin "_G" "_ENV"))
 
+(module_reference) @module.builtin
+
 ; Constants
 ((identifier) @constant
   (#match? @constant "^[A-Z][A-Z_0-9]*$"))

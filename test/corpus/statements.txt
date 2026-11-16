@@ -397,3 +397,28 @@ a();
     (identifier)
     (arguments))
   (empty_statement))
+
+================================================================================
+Module reference
+================================================================================
+
+module.x = module.y
+module.f()
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (assignment_statement
+    (variable_list
+      name: (dot_index_expression
+        table: (module_reference)
+        field: (identifier)))
+    (expression_list
+      value: (dot_index_expression
+        table: (module_reference)
+        field: (identifier))))
+  (function_call
+    name: (dot_index_expression
+      table: (module_reference)
+      field: (identifier))
+    arguments: (arguments)))

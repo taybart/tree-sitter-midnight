@@ -603,10 +603,12 @@ export default grammar({
       ),
     dot_index_expression: ($) =>
       seq(
-        field('table', $._prefix_expression),
+        field('table', choice($._prefix_expression, $.module_reference)),
         '.',
         field('field', $.identifier)
       ),
+    // `module` in `module.x`, which always refers to the module's `x`
+    module_reference: (_) => 'module',
 
     function_call: ($) =>
       choice(

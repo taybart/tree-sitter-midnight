@@ -825,6 +825,10 @@
             "named": true
           },
           {
+            "type": "module_reference",
+            "named": true
+          },
+          {
             "type": "parenthesized_expression",
             "named": true
           },
@@ -1686,6 +1690,11 @@
         ]
       }
     }
+  },
+  {
+    "type": "module_reference",
+    "named": true,
+    "fields": {}
   },
   {
     "type": "parameters",

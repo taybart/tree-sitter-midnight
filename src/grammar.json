@@ -2596,8 +2596,17 @@
           "type": "FIELD",
           "name": "table",
           "content": {
-            "type": "SYMBOL",
-            "name": "_prefix_expression"
+            "type": "CHOICE",
+            "members": [
+              {
+                "type": "SYMBOL",
+                "name": "_prefix_expression"
+              },
+              {
+                "type": "SYMBOL",
+                "name": "module_reference"
+              }
+            ]
           }
         },
         {
@@ -2613,6 +2622,10 @@
           }
         }
       ]
+    },
+    "module_reference": {
+      "type": "STRING",
+      "value": "module"
     },
     "function_call": {
       "type": "CHOICE",
