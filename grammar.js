@@ -98,6 +98,16 @@ export default grammar({
     // the same line, so `match - 1` and `local y = match` stay names.
     $._match_expression_keyword,
 
+    // `class` at the start of a class declaration. `class` is a contextual
+    // keyword, so the scanner only produces this when a name follows on the
+    // same line (same as midnight's isClassDeclaration), so `class = 1` and
+    // `local class` stay names.
+    $._class_keyword,
+
+    // `static` before a class member's name (on the same line), so
+    // `static = 1` and `static() {}` stay a field and a method named static.
+    $._static_keyword,
+
     // The content of a <script> / <style>, up to `</script` / `</style` (same
     // as midnight's markupRawText).
     $._markup_script_raw_text,
@@ -160,7 +170,8 @@ export default grammar({
         $.match_statement,
         $.for_statement,
         $.variable_declaration,
-        $.function_declaration
+        $.function_declaration,
+        $.class_declaration
       ),
 
     // return [explist | '(' explist ')'] [';']
@@ -345,6 +356,33 @@ export default grammar({
         ':',
         field('method', $.identifier)
       ),
+    // ['local' | 'global' | 'module'] 'class' Name [':' Name {'.' Name}] class_body
+    class_declaration: ($) =>
+      seq(
+        optional(field('scope', $.scope)),
+        alias($._class_keyword, 'class'),
+        field('name', $.identifier),
+        optional(seq(':', field('parent', $._function_name_prefix_expression))),
+        field('body', $.class_body)
+      ),
+    // '{' {member [',' | ';']} '}'
+    class_body: ($) =>
+      seq(
+        '{',
+        repeat(seq(choice($.class_field, $.class_method), optional(choice(',', ';')))),
+        '}'
+      ),
+    // Name '=' exp
+    class_field: ($) =>
+      seq(field('name', $.identifier), '=', field('value', $.expression)),
+    // ['static'] Name params block (`new` is the constructor)
+    class_method: ($) =>
+      seq(
+        optional(field('static', alias($._static_keyword, 'static'))),
+        field('name', $.identifier),
+        $._function_body
+      ),
+
     _function_body: ($) =>
       seq(field('parameters', $.parameters), field('body', $.block)),
 

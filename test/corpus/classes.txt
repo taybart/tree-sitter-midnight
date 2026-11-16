@@ -1,0 +1,155 @@
+================================================================================
+Class declaration
+================================================================================
+
+local class Animal {
+  legs = 4
+  new(name, sound = '...') {
+    self.name = name
+  }
+  speak() { return self.name }
+}
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (class_declaration
+    (scope)
+    (identifier)
+    (class_body
+      (class_field
+        (identifier)
+        (number))
+      (class_method
+        (identifier)
+        (parameters
+          (identifier)
+          (default_parameter
+            (identifier)
+            (string
+              (string_content))))
+        (block
+          (assignment_statement
+            (variable_list
+              (dot_index_expression
+                (identifier)
+                (identifier)))
+            (expression_list
+              (identifier)))))
+      (class_method
+        (identifier)
+        (parameters)
+        (block
+          (return_statement
+            (expression_list
+              (dot_index_expression
+                (identifier)
+                (identifier)))))))))
+
+================================================================================
+Class inheritance and scopes
+================================================================================
+
+module class Bird : Animal { speak() { return super.speak(self) } }
+class G : lib.Base { a = 1, b = 2; c() {} }
+class S { static f() {} static() {} static = 1 }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (class_declaration
+    (scope)
+    (identifier)
+    (identifier)
+    (class_body
+      (class_method
+        (identifier)
+        (parameters)
+        (block
+          (return_statement
+            (expression_list
+              (function_call
+                (dot_index_expression
+                  (identifier)
+                  (identifier))
+                (arguments
+                  (identifier)))))))))
+  (class_declaration
+    (identifier)
+    (dot_index_expression
+      (identifier)
+      (identifier))
+    (class_body
+      (class_field
+        (identifier)
+        (number))
+      (class_field
+        (identifier)
+        (number))
+      (class_method
+        (identifier)
+        (parameters)
+        (block))))
+  (class_declaration
+    (identifier)
+    (class_body
+      (class_method
+        (identifier)
+        (parameters)
+        (block))
+      (class_method
+        (identifier)
+        (parameters)
+        (block))
+      (class_field
+        (identifier)
+        (number)))))
+
+================================================================================
+Class as a name
+================================================================================
+
+local class = 'x'
+class = 1
+t.class = class
+local class
+class.x = 1
+class(x)
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (string
+        (string_content))))
+  (assignment_statement
+    (variable_list
+      (identifier))
+    (expression_list
+      (number)))
+  (assignment_statement
+    (variable_list
+      (dot_index_expression
+        (identifier)
+        (identifier)))
+    (expression_list
+      (identifier)))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier)))
+  (assignment_statement
+    (variable_list
+      (dot_index_expression
+        (identifier)
+        (identifier)))
+    (expression_list
+      (number)))
+  (function_call
+    (identifier)
+    (arguments
+      (identifier))))

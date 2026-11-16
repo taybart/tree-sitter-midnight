@@ -4,13 +4,21 @@
 
 ## Neovim
 
-Build the parser and put it, along with the queries, on your `runtimepath`:
+Build the parser and link the queries onto your `runtimepath` (a symlink, so
+the queries follow the repo as the grammar changes; rebuild the parser after
+pulling grammar changes):
 
 ```sh
 tree-sitter build -o ~/.config/nvim/parser/midnight.so
-mkdir -p ~/.config/nvim/queries/midnight
-cp queries/*.scm ~/.config/nvim/queries/midnight/
+mkdir -p ~/.config/nvim/queries
+ln -sfn "$PWD/queries" ~/.config/nvim/queries/midnight
 ```
+
+If you install parsers w/ nvim-treesitter (`:TSInstall` / `:TSUpdate`), skip
+this: it builds the parser and links the queries itself, into
+`~/.local/share/nvim/site/{parser,queries}`, and fails w/ `EEXIST` if a
+`queries/midnight` directory is already there (ex. from an older manual copy).
+Remove that directory and run `:TSUpdate midnight` again.
 
 Then register the filetype and start highlighting:
 

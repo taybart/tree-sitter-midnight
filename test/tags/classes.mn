@@ -1,0 +1,5 @@
+local class Bird : Animal {
+--          ^ definition.class
+  speak() {}
+--^ definition.method
+}

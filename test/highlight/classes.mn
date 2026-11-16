@@ -1,0 +1,25 @@
+local class Bird : Animal {
+-- ^ keyword.modifier
+--    ^ keyword.type
+--          ^ type
+--                 ^ type
+  legs = 2
+-- ^ variable.member
+  new(name) { self.name = name }
+-- ^ constructor
+--            ^ variable.builtin
+  speak() { return super.speak(self) }
+-- ^ function.method
+--                 ^ variable.builtin
+  static parse(s) { return s }
+-- ^ keyword.modifier
+--        ^ function
+  of = (s) -> s
+-- ^ function.method
+  static() {}
+-- ^ function.method
+  static = 1
+-- ^ variable.member
+}
+local class = 'x'
+--    ^ variable

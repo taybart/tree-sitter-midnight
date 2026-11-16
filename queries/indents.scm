@@ -1,5 +1,6 @@
 [
   (block)
+  (class_body)
   (match_statement)
   (if_expression)
   (match_expression)

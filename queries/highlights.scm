@@ -31,6 +31,8 @@
 
 "function" @keyword.function
 
+"class" @keyword.type
+
 (label_statement) @label
 
 ; Operators
@@ -88,7 +90,7 @@
   "|" @punctuation.delimiter)
 
 ((identifier) @variable.builtin
-  (#eq? @variable.builtin "self"))
+  (#any-of? @variable.builtin "self" "super"))
 
 ((identifier) @module.builtin
   (#any-of? @module.builtin "_G" "_ENV"))
@@ -251,3 +253,33 @@
   "..." @operator)
 
 (markup_text) @none @spell
+
+; Classes
+(class_declaration
+  name: (identifier) @type)
+
+(class_declaration
+  parent: [
+    (identifier) @type
+    (dot_index_expression
+      field: (identifier) @type)
+  ])
+
+(class_field
+  name: (identifier) @variable.member)
+
+(class_method
+  name: (identifier) @function.method)
+
+(class_method
+  "static" @keyword.modifier
+  name: (identifier) @function)
+
+; `name = (...) -> ...` / `=> ...`: a function stored on the class
+(class_field
+  name: (identifier) @function.method
+  value: (arrow_function))
+
+(class_method
+  name: (identifier) @constructor
+  (#eq? @constructor "new"))

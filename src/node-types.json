@@ -82,6 +82,10 @@
         "named": true
       },
       {
+        "type": "class_declaration",
+        "named": true
+      },
+      {
         "type": "continue_statement",
         "named": true
       },
@@ -528,6 +532,147 @@
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "class_body",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "class_field",
+          "named": true
+        },
+        {
+          "type": "class_method",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "class_declaration",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "class_body",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "parent": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "dot_index_expression",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "scope": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "scope",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "class_field",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "expression",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "class_method",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "parameters": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "parameters",
+            "named": true
+          }
+        ]
+      },
+      "static": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "static",
+            "named": false
+          }
+        ]
+      }
     }
   },
   {
@@ -2066,6 +2211,10 @@
     "named": true
   },
   {
+    "type": "class",
+    "named": false
+  },
+  {
     "type": "comment_content",
     "named": true
   },
@@ -2171,6 +2320,10 @@
   },
   {
     "type": "return",
+    "named": false
+  },
+  {
+    "type": "static",
     "named": false
   },
   {

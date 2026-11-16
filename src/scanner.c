@@ -23,6 +23,9 @@ enum TokenType {
   MATCH_KEYWORD,
   MATCH_EXPRESSION_KEYWORD,
 
+  CLASS_KEYWORD,
+  STATIC_KEYWORD,
+
   MARKUP_SCRIPT_RAW_TEXT,
   MARKUP_STYLE_RAW_TEXT,
 
@@ -266,6 +269,78 @@ static bool scan_match(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+// scan_class scans `class` as a keyword when a name (not a keyword) follows on
+// the same line (same as midnight's isClassDeclaration):
+//
+//   class Foo {, local class Foo : Base {
+//
+// but not `class = 1`, `local class`, `class.x`, or `class(x)`.
+static bool scan_class(TSLexer *lexer) {
+  for (const char *c = "class"; *c; c++) {
+    if (!consume_char(*c, lexer)) {
+      return false;
+    }
+  }
+  if (is_identifier_char(lexer->lookahead)) {
+    return false;
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = CLASS_KEYWORD;
+
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t' || lexer->lookahead == '\r') {
+    consume(lexer);
+  }
+  if (!(iswalpha(lexer->lookahead) || lexer->lookahead == '_')) {
+    return false;
+  }
+
+  char name[16];
+  unsigned len = 0;
+  while (is_identifier_char(lexer->lookahead)) {
+    if (len < sizeof(name) - 1) {
+      name[len] = (char)lexer->lookahead;
+    }
+    len++;
+    consume(lexer);
+  }
+  if (len >= sizeof(name)) {
+    return true; // longer than any keyword
+  }
+  name[len] = '\0';
+
+  static const char *keywords[] = {
+    "break", "continue", "do", "else", "elseif", "for", "function", "global",
+    "goto", "if", "in", "local", "module", "repeat", "return", "until",
+    "while", "true", "false", "nil",
+  };
+  for (unsigned i = 0; i < sizeof(keywords) / sizeof(keywords[0]); i++) {
+    if (strcmp(name, keywords[i]) == 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// scan_static scans `static` as a keyword when a name follows on the same line
+// (`static parse(s) {`), so `static = 1` and `static() {}` stay names.
+static bool scan_static(TSLexer *lexer) {
+  for (const char *c = "static"; *c; c++) {
+    if (!consume_char(*c, lexer)) {
+      return false;
+    }
+  }
+  if (is_identifier_char(lexer->lookahead)) {
+    return false;
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = STATIC_KEYWORD;
+
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t' || lexer->lookahead == '\r') {
+    consume(lexer);
+  }
+  return iswalpha(lexer->lookahead) || lexer->lookahead == '_';
+}
+
 // skip_quoted skips a quoted string (lookahead is its quote), on one line.
 static void skip_quoted(TSLexer *lexer) {
   int32_t quote = lexer->lookahead;
@@ -468,6 +543,14 @@ bool tree_sitter_midnight_external_scanner_scan(void *payload, TSLexer *lexer, c
 
   if (!in_error_recovery && valid_symbols[MATCH_EXPRESSION_KEYWORD] && lexer->lookahead == 'm') {
     return scan_match_expression(lexer);
+  }
+
+  if (!in_error_recovery && valid_symbols[CLASS_KEYWORD] && lexer->lookahead == 'c') {
+    return scan_class(lexer);
+  }
+
+  if (!in_error_recovery && valid_symbols[STATIC_KEYWORD] && lexer->lookahead == 's') {
+    return scan_static(lexer);
   }
 
   if (!in_error_recovery && valid_symbols[BLOCK_STRING_START]) {

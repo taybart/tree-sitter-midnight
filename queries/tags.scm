@@ -42,3 +42,9 @@
     (method_index_expression
       method: (identifier) @name)
   ]) @reference.call
+
+(class_declaration
+  name: (identifier) @name) @definition.class
+
+(class_method
+  name: (identifier) @name) @definition.method

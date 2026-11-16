@@ -4,6 +4,7 @@
   (block)
   (for_statement)
   (function_declaration)
+  (class_method)
   (arrow_function)
 ] @local.scope
 
@@ -20,6 +21,9 @@
   !name)
 
 (function_declaration
+  name: (identifier) @local.definition)
+
+(class_declaration
   name: (identifier) @local.definition)
 
 (for_generic_clause
