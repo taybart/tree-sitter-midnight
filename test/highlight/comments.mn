@@ -1,0 +1,10 @@
+--- @class Action
+-- <- comment.documentation
+--- @field command string
+-- <- comment.documentation
+-- @param x string
+-- <- comment.documentation
+--@alias Action union
+-- <- comment.documentation
+-- a normal comment
+-- <- !comment.documentation

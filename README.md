@@ -20,6 +20,13 @@ this: it builds the parser and links the queries itself, into
 `queries/midnight` directory is already there (ex. from an older manual copy).
 Remove that directory and run `:TSUpdate midnight` again.
 
+Doc annotations (`---@class`, `---@field`, `---@param`, ...) are highlighted
+like Lua by injecting the [`luadoc`](https://github.com/tree-sitter-grammars/tree-sitter-luadoc)
+grammar, so install that parser too (`:TSInstall luadoc`, or `tree-sitter build`
+that grammar to `parser/luadoc.so`). Without it, annotations still get the whole
+comment `@comment.documentation` style, but not the per-part (keyword / name /
+type / description) highlighting.
+
 Then register the filetype and start highlighting:
 
 ```lua
