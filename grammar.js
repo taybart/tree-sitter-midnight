@@ -8,20 +8,23 @@
 // @ts-check
 
 // Mirrors the operator precedence of the Erde reference compiler (erde/constants.erde).
+// `catch` binds looser than any operator, but an arrow function's expression
+// body includes it (`x -> f(x) catch 0`).
 const PREC = {
   ARROW: 0, // -> =>
-  OR: 1, // ||
-  AND: 2, // &&
-  COMPARE: 3, // < > <= >= != ==
-  BIT_OR: 4, // |
-  BIT_XOR: 5, // ~
-  BIT_AND: 6, // &
-  BIT_SHIFT: 7, // << >>
-  CONCAT: 8, // ..
-  PLUS: 9, // + -
-  MULTI: 10, // * / // %
-  UNARY: 11, // ! # - ~
-  POWER: 12, // ^
+  CATCH: 1, // catch
+  OR: 2, // ||
+  AND: 3, // &&
+  COMPARE: 4, // < > <= >= != ==
+  BIT_OR: 5, // |
+  BIT_XOR: 6, // ~
+  BIT_AND: 7, // &
+  BIT_SHIFT: 8, // << >>
+  CONCAT: 9, // ..
+  PLUS: 10, // + -
+  MULTI: 11, // * / // %
+  UNARY: 12, // ! # - ~
+  POWER: 13, // ^
 };
 
 const ASSIGNMENT_OPERATORS = [
@@ -108,6 +111,18 @@ export default grammar({
     // `static = 1` and `static() {}` stay a field and a method named static.
     $._static_keyword,
 
+    // `catch` after an expression. `catch` is a contextual keyword: on the
+    // line after the expression, the scanner only produces this when the next
+    // token can't continue a name (same as midnight's isCatch), so `catch = 1`
+    // and `catch(x)` on their own line stay names.
+    $._catch_keyword,
+
+    // `const` starting a declaration. `const` is a contextual keyword, so the
+    // scanner only produces this when a name or destructure follows on the
+    // same line (same as midnight's isConstDeclaration), so `const = 1` and
+    // `const(x)` stay names.
+    $._const_keyword,
+
     // The content of a <script> / <style>, up to `</script` / `</style` (same
     // as midnight's markupRawText).
     $._markup_script_raw_text,
@@ -132,6 +147,15 @@ export default grammar({
     [$.field, $._map_destructured_field],
     // `a => { ... }` as a match arm vs an arrow function
     [$.variable, $.arrow_function],
+    // `f() catch e { ... }` (a named block) vs `if f() catch e { ... }` (a
+    // fallback, then the if's block), and `catch { x }` (a block) vs a table:
+    // whichever parses (a block when both do, see catch_block)
+    [$.variable, $.catch_block],
+    [$.variable, $.field, $._map_destructured_field],
+    [$.catch_block, $.field],
+    [$._variable_list, $.expression],
+    [$.statement, $.expression],
+    [$.catch_statement, $.expression],
   ],
 
   rules: {
@@ -171,7 +195,8 @@ export default grammar({
         $.for_statement,
         $.variable_declaration,
         $.function_declaration,
-        $.class_declaration
+        $.class_declaration,
+        $.catch_statement
       ),
 
     // return [explist | '(' explist ')'] [';']
@@ -279,10 +304,14 @@ export default grammar({
         optional(seq(',', field('step', $.expression)))
       ),
 
-    // ('local' | 'global' | 'module') declist ['=' explist]
+    // ('local' | 'global' | 'module' | 'const' | 'module' 'const') declist
+    // ['=' explist]
     variable_declaration: ($) =>
       seq(
-        field('scope', $.scope),
+        choice(
+          seq(field('scope', $.scope), optional(field('const', alias($._const_keyword, 'const')))),
+          field('const', alias($._const_keyword, 'const'))
+        ),
         alias($._declaration_list, $.variable_list),
         optional(
           seq(
@@ -317,6 +346,16 @@ export default grammar({
         field('key', $.identifier),
         optional(seq(':', field('name', $.identifier))),
         optional(seq('=', field('default', $.expression)))
+      ),
+
+    // call 'catch' [Name] block: any statements, run when the call throws
+    //   risky() catch e { log(e) }
+    catch_statement: ($) =>
+      seq(
+        field('value', $.function_call),
+        alias($._catch_keyword, 'catch'),
+        optional(field('name', $.identifier)),
+        field('body', $.block)
       ),
 
     // ['local' | 'global' | 'module'] 'function' funcname params block
@@ -446,7 +485,39 @@ export default grammar({
         $.unary_expression,
         $.markup_element,
         $.if_expression,
-        $.match_expression
+        $.match_expression,
+        $.catch_expression
+      ),
+
+    // expr catch handler: the handler's value when expr throws. The handler is
+    // an expression, or a block (w/ the error as `name`) that's one
+    // expression (the value) or statements that exit.
+    //   local cfg = load(path) catch DEFAULTS
+    //   local data = decode(s) catch e { return nil, e }
+    catch_expression: ($) =>
+      prec.left(
+        PREC.CATCH,
+        seq(
+          field('value', $.expression),
+          alias($._catch_keyword, 'catch'),
+          field('handler', choice($.expression, $.catch_block))
+        )
+      ),
+    // (preferred over a table / a name followed by a block, when both parse)
+    catch_block: ($) =>
+      prec.dynamic(
+        1,
+        seq(
+          optional(field('name', $.identifier)),
+          '{',
+          choice(
+            // (a value over a statement, ex. `{ f() }`, same as the compiler)
+            prec.dynamic(1, field('value', $.expression)),
+            seq(repeat1($.statement), optional($.return_statement)),
+            $.return_statement
+          ),
+          '}'
+        )
       ),
 
     // if / match expressions: where an expression is expected, `if` / `match`

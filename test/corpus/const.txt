@@ -1,0 +1,75 @@
+================================================================================
+Const declarations
+================================================================================
+
+const x = 1
+const { a, b: c } = t
+const [d] = l
+module const y = 2
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (variable_list
+      (identifier))
+    (expression_list
+      (number)))
+  (variable_declaration
+    (variable_list
+      (map_destructure
+        (destructured_field
+          (identifier))
+        (destructured_field
+          (identifier)
+          (identifier))))
+    (expression_list
+      (identifier)))
+  (variable_declaration
+    (variable_list
+      (array_destructure
+        (destructured_field
+          (identifier))))
+    (expression_list
+      (identifier)))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (number))))
+
+================================================================================
+Const as a name
+================================================================================
+
+const = 1
+const(x)
+const.z = 3
+local const = 4
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (assignment_statement
+    (variable_list
+      (identifier))
+    (expression_list
+      (number)))
+  (function_call
+    (identifier)
+    (arguments
+      (identifier)))
+  (assignment_statement
+    (variable_list
+      (dot_index_expression
+        (identifier)
+        (identifier)))
+    (expression_list
+      (number)))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (number))))

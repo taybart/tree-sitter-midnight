@@ -6,6 +6,8 @@
   (function_declaration)
   (class_method)
   (arrow_function)
+  (catch_block)
+  (catch_statement)
 ] @local.scope
 
 ; Definitions
@@ -41,6 +43,12 @@
 
 (arrow_function
   parameters: (identifier) @local.definition)
+
+(catch_block
+  name: (identifier) @local.definition)
+
+(catch_statement
+  name: (identifier) @local.definition)
 
 ; References
 (identifier) @local.reference

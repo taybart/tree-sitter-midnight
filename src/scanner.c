@@ -26,6 +26,10 @@ enum TokenType {
   CLASS_KEYWORD,
   STATIC_KEYWORD,
 
+  CATCH_KEYWORD,
+
+  CONST_KEYWORD,
+
   MARKUP_SCRIPT_RAW_TEXT,
   MARKUP_STYLE_RAW_TEXT,
 
@@ -269,14 +273,16 @@ static bool scan_match(TSLexer *lexer) {
   return lexer->lookahead != '=';
 }
 
+static bool scan_declared_name(TSLexer *lexer);
+
 // scan_class scans `class` as a keyword when a name (not a keyword) follows on
 // the same line (same as midnight's isClassDeclaration):
 //
 //   class Foo {, local class Foo : Base {
 //
 // but not `class = 1`, `local class`, `class.x`, or `class(x)`.
-static bool scan_class(TSLexer *lexer) {
-  for (const char *c = "class"; *c; c++) {
+static bool scan_class(TSLexer *lexer, const char *rest) {
+  for (const char *c = rest; *c; c++) {
     if (!consume_char(*c, lexer)) {
       return false;
     }
@@ -290,6 +296,42 @@ static bool scan_class(TSLexer *lexer) {
   while (lexer->lookahead == ' ' || lexer->lookahead == '\t' || lexer->lookahead == '\r') {
     consume(lexer);
   }
+  return scan_declared_name(lexer);
+}
+
+// scan_const scans `const` as a keyword when what it declares follows on the
+// same line, a name (not a keyword) or a destructure (same as midnight's
+// isConstDeclaration):
+//
+//   const x = 1, const { a } = t, module const [a, b] = l
+//
+// but not `const = 1`, `const.x`, or `const(x)`. (midnight also checks that
+// `const` isn't a variable in scope before a destructure, ex. `const[1] = 2`,
+// which a scanner can't.)
+static bool scan_const(TSLexer *lexer) {
+  for (const char *c = "onst"; *c; c++) {
+    if (!consume_char(*c, lexer)) {
+      return false;
+    }
+  }
+  if (is_identifier_char(lexer->lookahead)) {
+    return false;
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = CONST_KEYWORD;
+
+  while (lexer->lookahead == ' ' || lexer->lookahead == '\t' || lexer->lookahead == '\r') {
+    consume(lexer);
+  }
+  if (lexer->lookahead == '{' || lexer->lookahead == '[') {
+    return true;
+  }
+  return scan_declared_name(lexer);
+}
+
+// scan_declared_name checks for a name that isn't a keyword (what `class` and
+// `const` declare), consuming it.
+static bool scan_declared_name(TSLexer *lexer) {
   if (!(iswalpha(lexer->lookahead) || lexer->lookahead == '_')) {
     return false;
   }
@@ -339,6 +381,45 @@ static bool scan_static(TSLexer *lexer) {
     consume(lexer);
   }
   return iswalpha(lexer->lookahead) || lexer->lookahead == '_';
+}
+
+// scan_catch scans `catch` (after its `c`) as a keyword after an expression.
+// On the line after the expression (newline), it's still a name when followed
+// by something that continues one at the start of a statement (same as
+// midnight's isCatch):
+//
+//   catch = 1, catch, y = ..., catch.x, catch[i], catch:f(), catch(x), catch += 1
+static bool scan_catch(TSLexer *lexer, bool newline) {
+  for (const char *c = "atch"; *c; c++) {
+    if (!consume_char(*c, lexer)) {
+      return false;
+    }
+  }
+  if (is_identifier_char(lexer->lookahead)) {
+    return false;
+  }
+  lexer->mark_end(lexer);
+  lexer->result_symbol = CATCH_KEYWORD;
+  if (!newline) {
+    return true;
+  }
+
+  while (iswspace(lexer->lookahead)) {
+    consume(lexer);
+  }
+  switch (lexer->lookahead) {
+    case '=':
+    case ',':
+    case '.':
+    case '[':
+    case ':':
+    case '(':
+      return false;
+  }
+  for (int i = 0; i < 2 && lexer->lookahead > 0 && lexer->lookahead < 128 && strchr("+-*/%^|&~<>", lexer->lookahead); i++) {
+    consume(lexer);
+  }
+  return lexer->lookahead != '=';
 }
 
 // skip_quoted skips a quoted string (lookahead is its quote), on one line.
@@ -528,7 +609,9 @@ bool tree_sitter_midnight_external_scanner_scan(void *payload, TSLexer *lexer, c
     return true;
   }
 
+  bool newline = false;
   while (iswspace(lexer->lookahead)) {
+    newline = newline || lexer->lookahead == '\n';
     skip(lexer);
   }
 
@@ -545,8 +628,20 @@ bool tree_sitter_midnight_external_scanner_scan(void *payload, TSLexer *lexer, c
     return scan_match_expression(lexer);
   }
 
-  if (!in_error_recovery && valid_symbols[CLASS_KEYWORD] && lexer->lookahead == 'c') {
-    return scan_class(lexer);
+  // `catch` / `class` / `const` (more than one can be valid, ex. a class
+  // declaration after a call statement)
+  if (!in_error_recovery && (valid_symbols[CATCH_KEYWORD] || valid_symbols[CLASS_KEYWORD] || valid_symbols[CONST_KEYWORD]) && lexer->lookahead == 'c') {
+    consume(lexer);
+    if (valid_symbols[CATCH_KEYWORD] && lexer->lookahead == 'a') {
+      return scan_catch(lexer, newline);
+    }
+    if (valid_symbols[CLASS_KEYWORD] && lexer->lookahead == 'l') {
+      return scan_class(lexer, "lass");
+    }
+    if (valid_symbols[CONST_KEYWORD] && lexer->lookahead == 'o') {
+      return scan_const(lexer);
+    }
+    return false;
   }
 
   if (!in_error_recovery && valid_symbols[STATIC_KEYWORD] && lexer->lookahead == 's') {

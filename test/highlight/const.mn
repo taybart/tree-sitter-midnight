@@ -1,0 +1,8 @@
+const site = 'https://example.com'
+-- <- keyword.modifier
+--    ^ variable
+module const { a, b } = t
+-- <- keyword.modifier
+--     ^ keyword.modifier
+local const = 1
+--    ^ variable

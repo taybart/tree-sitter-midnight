@@ -1,0 +1,193 @@
+================================================================================
+Catch expressions
+================================================================================
+
+local cfg = load(path) catch DEFAULTS
+local data = decode(s) catch e { return nil, e }
+local n = tonumber(s) catch e { e }
+local t = f() catch { {} }
+local y = a() catch b() catch 'c'
+local g = (x) -> f(x) catch 0
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (catch_expression
+        (function_call
+          (identifier)
+          (arguments
+            (identifier)))
+        (identifier))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (catch_expression
+        (function_call
+          (identifier)
+          (arguments
+            (identifier)))
+        (catch_block
+          (identifier)
+          (return_statement
+            (expression_list
+              (nil)
+              (identifier)))))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (catch_expression
+        (function_call
+          (identifier)
+          (arguments
+            (identifier)))
+        (catch_block
+          (identifier)
+          (identifier)))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (catch_expression
+        (function_call
+          (identifier)
+          (arguments))
+        (catch_block
+          (table_constructor)))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (catch_expression
+        (catch_expression
+          (function_call
+            (identifier)
+            (arguments))
+          (function_call
+            (identifier)
+            (arguments)))
+        (string
+          (string_content)))))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (arrow_function
+        (parameters
+          (identifier))
+        (catch_expression
+          (function_call
+            (identifier)
+            (arguments
+              (identifier)))
+          (number))))))
+
+================================================================================
+Catch statements
+================================================================================
+
+risky() catch e { log(e) }
+risky() catch {}
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (catch_statement
+    (function_call
+      (identifier)
+      (arguments))
+    (identifier)
+    (block
+      (function_call
+        (identifier)
+        (arguments
+          (identifier)))))
+  (catch_statement
+    (function_call
+      (identifier)
+      (arguments))
+    (block)))
+
+================================================================================
+Catch in headers (no block)
+================================================================================
+
+if f() catch x { print(x) }
+match f() catch 0 { 0 => {} }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (if_statement
+    (catch_expression
+      (function_call
+        (identifier)
+        (arguments))
+      (identifier))
+    (block
+      (function_call
+        (identifier)
+        (arguments
+          (identifier)))))
+  (match_statement
+    (catch_expression
+      (function_call
+        (identifier)
+        (arguments))
+      (number))
+    (match_arm
+      (number)
+      (block))))
+
+================================================================================
+Catch as a name
+================================================================================
+
+local catch = 1
+catch = 2
+catch(3)
+local v = f()
+  catch e { 'next line' }
+
+--------------------------------------------------------------------------------
+
+(chunk
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (number)))
+  (assignment_statement
+    (variable_list
+      (identifier))
+    (expression_list
+      (number)))
+  (function_call
+    (identifier)
+    (arguments
+      (number)))
+  (variable_declaration
+    (scope)
+    (variable_list
+      (identifier))
+    (expression_list
+      (catch_expression
+        (function_call
+          (identifier)
+          (arguments))
+        (catch_block
+          (identifier)
+          (string
+            (string_content)))))))

@@ -4,6 +4,7 @@
   (match_statement)
   (if_expression)
   (match_expression)
+  (catch_block)
   (table_constructor)
   (arguments)
   (parameters)

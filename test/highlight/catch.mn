@@ -1,0 +1,13 @@
+local data = decode(s) catch e { return nil, e }
+--                     ^ keyword.exception
+--                           ^ variable.parameter
+local cfg = load(path) catch DEFAULTS
+--                     ^ keyword.exception
+--                           ^ constant
+risky() catch err { log(err) }
+--      ^ keyword.exception
+--            ^ variable.parameter
+local catch = 1
+--    ^ variable
+catch = 2
+-- <- variable

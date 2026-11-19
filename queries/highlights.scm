@@ -6,7 +6,10 @@
   "in"
 ] @keyword
 
-(scope) @keyword.modifier
+[
+  (scope)
+  "const"
+] @keyword.modifier
 
 [
   (break_statement)
@@ -30,6 +33,8 @@
 ] @keyword.conditional
 
 "function" @keyword.function
+
+"catch" @keyword.exception
 
 "class" @keyword.type
 
@@ -141,6 +146,13 @@
 
 (arrow_function
   parameters: (identifier) @variable.parameter)
+
+; the error in `catch e { ... }`
+(catch_block
+  name: (identifier) @variable.parameter)
+
+(catch_statement
+  name: (identifier) @variable.parameter)
 
 (function_declaration
   name: [
